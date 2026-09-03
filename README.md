@@ -184,3 +184,7 @@ If you'd like to add a new language or improve an existing translation:
 1.  Copy the `strings.txt` file from the repository.
 2.  Add strings for the language you want (e.g. `DE`, `FR`, `NL`).
 3.  Submit a Pull Request.
+
+## 🗺️ Roadmap / Planned Features
+- [ ] **JSON Backup:** Export and import your full station list as JSON, for backup and restore.
+- [ ] **M3U Export / Import:** Export your stations to an M3U playlist for use in other players, and import stations from an M3U playlist.
