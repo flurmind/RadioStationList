@@ -2,7 +2,7 @@
 
 🌐 **English** | [Русский](README.ru.md)
 
-**P**lugin for [Lyrion Music Server (LMS)](https://lyrion.org/) lets you build and conveniently manage your own collection of internet radio stations: edit station data (including logos), reorder them, and search for and add new stations from the [Radio Browser](https://www.radio-browser.info) database with filtering by stream quality and metadata.
+A **P**lugin for [Lyrion Music Server (LMS)](https://lyrion.org/) that lets you build your own custom collection of internet radio stations, selecting the ones that offer the best stream quality. Conveniently manage your list: edit station data (including logos), reorder them, and search for new stations from the [Radio Browser](https://www.radio-browser.info) database with filtering by stream quality and metadata.
 > Technical package name: `RadioStationList`
 
 ## 📸 Screenshots
