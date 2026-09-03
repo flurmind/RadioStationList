@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<extensions>
+  <details>
+    <title lang="EN">My Stations</title>
+  </details>
+  <plugins>
+    <plugin name="RadioStationList" version="1.0.0" minTarget="8.0.0" maxTarget="*">
+      <title lang="EN">My Stations</title>
+      <desc lang="EN">Custom station list with Web UI management + Radio Browser catalog.</desc>
+      <url>https://github.com/flurmind/RadioStationList/releases/download/1.0.0/RadioStationList-1.0.0.zip</url>
+      <sha>8171d2b4dd135bd78719d2858379d78b1f21eea3</sha>
+      <creator>flurmind</creator>
+      <email>flurmind@gmail.com</email>
+      <link>https://github.com/flurmind/RadioStationList</link>
+      <icon>https://raw.githubusercontent.com/flurmind/RadioStationList/refs/heads/main/RadioStationList/HTML/EN/plugins/RadioStationList/html/images/mystations.svg</icon>
+    </plugin>
+  </plugins>
+</extensions>

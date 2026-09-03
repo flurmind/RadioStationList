@@ -1,0 +1,159 @@
+RADIO_STATION_LIST
+	EN	My Stations
+	RU	Мои станции
+	
+PLUGIN_RADIOSTATIONLIST_MODULE_DESC
+	EN	Custom station list with Web UI management + Radio Browser catalog.
+	RU	Пользовательский список станций с управлением через Web UI + каталог Radio Browser.
+
+PLUGIN_RADIOSTATIONLIST_LOG_DESC
+	EN	"My Stations" plugin logging
+	RU	Логирование плагина «Мои станции»
+
+RR_NAME
+	EN	Station Name
+	RU	Название станции
+
+RR_URL
+	EN	Audio Stream URL (http:// or https://)
+	RU	URL аудиопотока (http:// или https://)
+
+RR_ICON_URL
+	EN	Station Logo URL (optional)
+	RU	URL логотипа станции (необязательно)
+
+RR_GENRE_COUNTRY
+	EN	Genre | Country (optional)
+	RU	Жанр | Страна (необязательно)
+
+RR_CODEC
+	EN	Codec
+	RU	Кодек
+
+RR_BITRATE
+	EN	Bitrate
+	RU	Битрейт
+
+RR_ORDER
+	EN	Order
+	RU	Порядок
+
+RR_ACTIONS
+	EN	Actions
+	RU	Действия
+
+RR_EMPTY
+	EN	The list is empty. Add your first station below.
+	RU	Список пуст. Добавьте первую станцию ниже.
+
+RR_ADD_STATION
+	EN	Add Station
+	RU	Добавить станцию
+
+RR_ADD_BTN
+	EN	Add
+	RU	Добавить
+
+EMPTY_FIELD
+	EN	Please fill in Name and URL
+	RU	Заполните поля: Название и URL
+
+RR_ERROR_URL
+	EN	Invalid link. Make sure it starts with http:// or https:// and contains no spaces or non-Latin characters (encode them as %XX if needed)
+	RU	Некорректная ссылка. Убедитесь, что она начинается с http:// или https:// и не содержит пробелов и не-латинских символов (закодируйте их как %XX при необходимости)
+
+RR_RETRY
+	EN	Retry failed icons
+	RU	Повторить загрузку неудачных логотипов
+
+RR_CUSTOM_LOGO_DIR
+	EN	Custom Logos Folder Path
+	RU	Путь к папке с кастомными логотипами
+
+RR_CUSTOM_LOGO_DIR_PLACEHOLDER
+	EN	/path/to/custom/logos/
+	RU	/путь/к/вашей/папке/с/логотипами/
+
+RR_CUSTOM_LOGO_DIR_DESC
+	EN	Specify an absolute path to the folder on the server. Supported: .png, .jpg, .jpeg, .gif, .ico, .svg (filename must exactly match the station name). Leave blank to use the default folder:
+	RU	Укажите абсолютный путь к папке на сервере. Поддерживаются: .png, .jpg, .jpeg, .gif, .ico, .svg (имя файла должно строго совпадать с названием станции). Оставьте поле пустым, чтобы использовать папку по умолчанию:
+
+PLUGIN_RADIOSTATIONLIST_SHOW_SUBTEXT
+	EN	Show extra info (codec, bitrate, genre, country) under station name
+	RU	Показывать доп. информацию (кодек, битрейт, жанр, страна) под названием станции
+	
+PLUGIN_RADIOSTATIONLIST_ALLOW_WEBP
+	EN	Enable WebP logo support for online stations (Web UI only)
+	RU	Поддержка WebP логотипов для онлайн-станций (только для веб-интерфейсов)
+
+PLUGIN_RADIOSTATIONLIST_ALLOW_WEBP_HINT
+	EN	Allows passing online WebP logos directly to the playlist. Note: LMS does not process WebP natively, and hardware players (like Squeezebox Touch) cannot display it.
+	RU	Разрешает проброс WebP-логотипов онлайн-станций в плейлист. Примечание: LMS не поддерживает обработку WebP, а аппаратные плееры (Squeezebox Touch) его не отображают. 
+
+PLUGIN_RADIOSTATIONLIST_USE_ICON_PROXY
+	EN	Use proxy fallback for blocked or broken icons (wsrv.nl)
+	RU	Использовать прокси для заблокированных и битых иконок (wsrv.nl)
+
+PLUGIN_RADIOSTATIONLIST_USE_ICON_PROXY_DESC
+	EN	Implements a 2-strike system for downloading logos. Attempt 1 is always direct. If it fails (due to ISP blocks, network errors, or unprocessable links), Attempt 2 routes via the wsrv.nl CDN proxy when enabled, or retries directly when disabled. After 2 failed strikes, the logo URL is blacklisted and replaced with the default icon.
+	RU	Использует систему из 2 попыток загрузки логотипов. 1-я попытка — всегда прямая. В случае ошибки (из-за блокировок провайдера, сетевых сбоев или проблем с обработкой в LMS) 2-я попытка выполняется через CDN-прокси wsrv.nl (если включено) или повторно напрямую (если выключено). После 2 ошибок URL логотипа банится и заменяется дефолтным.
+
+RR_SEARCH_LIMIT
+	EN	Search Cache Size
+	RU	Размер кэша поиска
+
+RR_SEARCH_LIMIT_DESC
+	EN	Number of stations loaded per API request. This value must be large enough so that search results overflow your screen height, otherwise infinite scrolling will not trigger. An optimal cache size also ensures faster simultaneous loading of direct logos on the search page.
+	RU	Количество станций, загружаемых за один API-запрос. Значение должно быть достаточно большим, чтобы результаты поиска выходили за нижнюю границу вашего экрана — иначе автоматическая подгрузка при прокрутке (бесконечный скролл) не сработает. Оптимальный размер кэша также обеспечивает более быструю одновременную загрузку прямых логотипов на странице.
+
+RR_SEARCH_RADIO_BROWSER
+	EN	Radio Browser (name #genre @country ?bitrate)
+	RU	Radio Browser (название #жанр @страна ?битрейт)
+
+RR_NO_RESULTS
+	EN	No stations found.
+	RU	Ничего не найдено.
+
+RR_ERROR_NETWORK
+	EN	Network error. Please try again.
+	RU	Ошибка сети. Попробуйте ещё раз.
+
+RR_ERROR_API
+	EN	Radio Browser API error. Please try again.
+	RU	Ошибка API Radio Browser. Попробуйте ещё раз.
+
+RR_ADD_FAV
+	EN	To My Stations
+	RU	В мои станции
+
+RR_ALREADY_ADDED
+	EN	Already in the list
+	RU	Уже есть в списке
+
+RR_ADDED
+	EN	Added!
+	RU	Добавлено!
+
+RR_SEARCH_TIPS_TITLE
+	EN	Radio Browser Search Guide
+	RU	Руководство по поиску Radio Browser
+
+RR_SEARCH_TIPS_BODY
+	EN	Search by name, genre, country, and bitrate using prefixes — combine in any order, separated by spaces:<br>&nbsp;&nbsp;•&nbsp;plain text — searches station name;<br>&nbsp;&nbsp;•&nbsp;# — genre;<br>&nbsp;&nbsp;•&nbsp;@ — <a href="https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes" target="_blank">ISO country code</a>;<br>&nbsp;&nbsp;•&nbsp;? — minimum bitrate (kbps).<br>Examples:<br>&nbsp;&nbsp;•&nbsp;<code>#chill @th ?256</code> — chill stations from Thailand with 256+ kbps;<br>&nbsp;&nbsp;•&nbsp;<code>?192 rock</code> — stations with "rock" in the name and 192+ kbps.
+	RU	Поиск осуществляется по разным полям с помощью префиксов — комбинируйте в любом порядке через пробел:<br>&nbsp;&nbsp;•&nbsp;текст без префикса — поиск по названию станции;<br>&nbsp;&nbsp;•&nbsp;# — поиск по жанру;<br>&nbsp;&nbsp;•&nbsp;@ — <a href="https://ru.wikipedia.org/wiki/ISO_3166-1" target="_blank">код страны (ISO)</a>;<br>&nbsp;&nbsp;•&nbsp;? — минимальный битрейт (кбит/с).<br>Примеры:<br>&nbsp;&nbsp;•&nbsp;<code>#chill @th ?256</code> — chill-станции из Таиланда от 256 кбит/с;<br>&nbsp;&nbsp;•&nbsp;<code>?192 rock</code> — станции с «rock» в названии от 192 кбит/с.
+
+RR_INFO_NAME
+	EN	Name
+	RU	Имя
+
+RR_INFO_GENRE
+	EN	Genre
+	RU	Жанр
+
+RR_INFO_COUNTRY
+	EN	Country
+	RU	Страна
+
+RR_INFO_HOMEPAGE
+	EN	Website
+	RU	Веб-сайт

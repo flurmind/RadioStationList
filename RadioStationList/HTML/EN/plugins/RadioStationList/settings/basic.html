@@ -1,0 +1,1145 @@
+[% PROCESS settings/header.html %]
+<style>
+.rr-table-container { 
+    overflow-x: auto; 
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; 
+    max-height: 60vh;
+}
+.rr-table { min-width: 860px; width: 100%; border-collapse: collapse; background: transparent; table-layout: fixed; }
+
+/* Freezing column widths */
+.rr-table th:nth-child(1), .rr-table td:nth-child(1) { width: 30px; min-width: 30px; text-align: center; }
+.rr-table th:nth-child(2), .rr-table td:nth-child(2) { width: 20%; min-width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rr-table th:nth-child(3), .rr-table td:nth-child(3) { min-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rr-table th:nth-child(4), .rr-table td:nth-child(4) { width: 65px; min-width: 65px; text-align: center; }
+.rr-table th:nth-child(5), .rr-table td:nth-child(5) { width: 65px; min-width: 65px; text-align: center; }
+.rr-table th:nth-child(6), .rr-table td:nth-child(6) { width: 85px; min-width: 85px; text-align: center; }
+.rr-table th:nth-child(7), .rr-table td:nth-child(7) { width: 85px; min-width: 85px; text-align: center; }
+
+/* General cell styles */
+.rr-table th { text-align: left; padding: 8px 10px; font-size: var(--std-font-size); font-weight: var(--bold-weight); border-bottom: 1px solid var(--border-color); }
+.rr-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-color); vertical-align: middle; font-size: var(--std-font-size); color: var(--text-color, inherit); }
+
+/* Cell classes */
+.rr-td-url { word-break: break-all; font-size: var(--std-font-size) !important; font-weight: normal !important; }
+.rr-td-center { white-space: nowrap; text-align: center; }
+.rr-td-codec { white-space: nowrap; text-align: center; font-size: var(--small-font-size); width: 55px; }
+.rr-td-bitrate { white-space: nowrap; text-align: center; font-size: var(--small-font-size); }
+
+/* Editing classes */
+.rr-table tr.rr-row-editing { background: rgba(128,128,128,0.05); }
+.rr-table tr.rr-row-editing td { 
+	white-space: normal !important; 
+	overflow: visible !important; 
+	height: auto !important;          
+	line-height: normal !important;   
+	padding-top: 8px !important; 
+	padding-bottom: 8px !important;
+	vertical-align: middle !important;
+}
+.rr-table tr.rr-row-editing td:nth-child(2) { width: auto; min-width: 0; padding-right: 10px !important; }
+.rr-table tr.rr-row-editing td:nth-child(3) { width: auto; }
+
+.rr-table tr.rr-row-editing .rr-input-field {
+	display: block !important;
+	width: 100% !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
+	white-space: normal !important;
+	text-overflow: clip !important;
+	margin-bottom: 6px !important;
+}
+.rr-table tr.rr-row-editing .rr-input-field:last-child { margin-bottom: 0 !important; }
+
+.rr-input-field::placeholder {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rr-empty-row td { text-align: center; padding: 2em; opacity: 0.6; }
+
+.rr-row-editing .rr-edit-actions {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    background: canvas;
+}
+
+/* BUTTONS: UNIFIED LMS SYSTEM STYLE */
+.rr-btn { 
+    padding: 4px 12px; 
+    margin: 0 2px; 
+    cursor: pointer; 
+    border-radius: 3px; 
+    border: 1px solid var(--border-color, #ccc); 
+    background: transparent; 
+    color: var(--text-color, inherit); 
+    font-size: var(--small-font-size); 
+    transition: transform 0.1s, border-color 0.2s, color 0.2s; 
+
+    /* Strict blocking of mobile artifacts and squares on tap */
+    -webkit-user-select: none;   
+    user-select: none;           
+    -webkit-touch-callout: none; 
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Removing system focus outlines */
+.rr-btn:focus { outline: none; }
+.rr-btn[disabled] { pointer-events: none !important; opacity: 0.3; }
+
+/* Buttons in the table */
+.rr-table .rr-btn { width: 42px; padding-left: 0; padding-right: 0; text-align: center; }
+.rr-table tr.rr-row-editing td:last-child { white-space: nowrap !important; }
+
+/* Emphasis buttons ("Add", "Retry") - default: обычный вид, как у .rr-btn.
+   Акцент-цвет и pill-форма - только для Material, см. правило ниже. */
+.rr-btn-add, .rr-btn-retry { 
+    font-weight: bold; 
+}
+
+/* Material-only: определяется в JS по URL пути iframe'а (window.location.pathname 
+   содержит /material/), см. rrInitSkin() в конце <script> */
+body.rr-skin-material .rr-btn-add, body.rr-skin-material .rr-btn-retry {
+    color: var(--accent-color, #5275a1);
+    border-color: var(--accent-color, #5275a1);
+    border-radius: 100px;
+}
+
+/* -----------------------------------------
+   1. ONLY FOR PC (Mouse): Highlight on hover
+   pointer: fine ensures this DOES NOT work on touchscreens.
+   ----------------------------------------- */
+@media (hover: hover) and (pointer: fine) {
+    .rr-btn:hover { 
+        color: var(--accent-color, #5275a1); 
+        border-color: var(--accent-color, #5275a1); 
+    }
+    .rr-btn-del:hover { 
+        color: #dc3545!important;
+        border-color: #dc3545!important;
+    }
+}
+
+/* -----------------------------------------
+   2. TOUCH RESPONSE — via controlled JS class .rr-pressed, not :active.
+   :active is not guaranteed to be removed on Android when moving the finger/mouse
+   outside the button before releasing — .rr-pressed is explicitly removed on
+   pointerup/pointercancel, regardless of where it occurred.
+   ----------------------------------------- */
+.rr-btn.rr-pressed {
+    color: var(--accent-color, #5275a1) !important;
+    border-color: var(--accent-color, #5275a1) !important;
+}
+.rr-btn-del.rr-pressed {
+    color: #dc3545 !important; 
+    border-color: #dc3545 !important;
+}
+
+/* Addition block */
+/* .rr-add { background: var(--browse-header-color, rgba(128, 128, 128, 0.02)); padding: 14px 0; border-radius: 6px; margin-top: 1.5em; border: 1px solid var(--border-color, rgba(128, 128, 128, 0.1)); } */
+
+.rr-add { margin-top: 1.5em; }
+.rr-add label { 
+    font-size: var(--small-font-size); 
+    display: block; 
+    margin-top: 8px; 
+    margin-bottom: 8px;
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    box-sizing: border-box;
+}
+.rr-add > div > div {
+    min-width: 0; 
+}
+/* Input fields */
+.rr-input-field {
+	width: 100% !important;
+	max-width: 100% !important;
+	display: block !important;
+	padding: 6px 0;
+	min-width: 0;
+	box-sizing: border-box;
+	background: transparent;
+	border: none;
+	border-bottom: 1px solid var(--border-color, #555);
+	border-radius: 0;
+	font-size: var(--std-font-size);
+	transition: border-bottom-color 0.2s;
+	color: var(--text-color, inherit);
+}
+.rr-input-field:focus { border-bottom-color: var(--accent-color, #5275a1); outline: none; }
+.rr-input-field:focus::placeholder { color: transparent; }
+
+/* Drag and Drop */
+.rr-table td:nth-child(1) { cursor: move; }
+.rr-table td:nth-child(1) span { pointer-events: none; }
+.rr-table tr.rr-dragging { opacity: 0.4; background: var(--list-hover-color, rgba(128,128,128,0.1)); }
+/*.rr-drag-over { border-top: 2px solid var(--accent-color, #5275a1) !important; }*/
+/*.rr-drag-over-bottom { border-bottom: 2px solid var(--accent-color, #5275a1) !important; }*/
+
+tr.rr-drag-over td { border-top: 2px solid var(--accent-color, #5275a1) !important; }
+tr.rr-drag-over-bottom td { border-bottom: 2px solid var(--accent-color, #5275a1) !important; }
+
+/* Err & Ico */
+.rr-error { color: #f88; padding: 8px; margin-bottom: 1em; background: rgba(255, 0, 0, 0.1); border-radius: 4px; display: none; border: 1px solid rgba(255, 0, 0, 0.2); position: sticky; top: 0; z-index: 10; }
+.rr-thumb { 
+    width: 32px;
+    height: 32px;
+    object-fit: contain; 
+    border-radius: 4px; 
+    vertical-align: middle; 
+    background: transparent;
+	display: inline-block;
+    pointer-events: none;
+}
+.rr-thumb-wrap { position: relative; display: inline-block; line-height: 0; }
+.rr-badge {
+    position: absolute;
+    right: -8px;
+    bottom: -6px;
+    width: 12px;
+    height: 12px;
+}
+.rr-badge svg {
+    width: 12px;
+    height: 12px;
+    display: block;
+}
+</style>
+
+<div id="rr-error" class="rr-error"></div>
+
+<input type="hidden" id="rr-stations-raw" value="[% stations_json | html %]">
+<span id="rr-i18n-data" style="display:none"
+    data-err-fill="[% 'EMPTY_FIELD' | string | html %]"
+    data-empty="[% 'RR_EMPTY' | string | html %]"
+    data-err-url="[% 'RR_ERROR_URL' | string | html %]"
+    data-already-added="[% 'RR_ALREADY_ADDED' | string | html %]"
+></span>
+
+<div class="rr-table-container">
+	<table class="rr-table" id="rr-stations-table">
+		<thead>
+			<tr>
+				<th></th>
+				<th>[% "RR_NAME" | string %]</th>
+				<th>[% "RR_URL" | string %]</th>
+				<th>[% "RR_CODEC" | string %]</th>
+				<th>[% "RR_BITRATE" | string %]</th>
+				<th>[% "RR_ORDER" | string %]</th>
+				<th>[% "RR_ACTIONS" | string %]</th>
+			</tr>
+		</thead>
+		<tbody id="rr-table-body">
+			[% IF stations && stations.size %]
+				[% FOREACH station IN stations %]
+				<tr ondragover="rrDragOver(event)" ondrop="rrDrop(event, [% loop.index %]); event.stopPropagation();" ondragend="rrDragEnd(event)" class="rr-drag-row">
+					<td draggable="true" ondragstart="rrDragStart(event, [% loop.index %])" style="text-align: center;">
+						<span class="rr-thumb-wrap">
+						[% IF station.icon_state == 'FETCH_FAILED_PERM' %]
+							<img class="rr-thumb" src="/plugins/RadioStationList/html/images/broken.svg" data-url="[% station.url | html %]" loading="lazy">
+						[% ELSE %]
+							<img class="rr-thumb" src="[% station.display_icon | html %]" data-url="[% station.url | html %]" onerror="rrOnImgError(this)" loading="lazy">
+						[% END %]
+
+						[% IF station.icon_state == 'FETCH_FAILED_TEMP' || station.icon_state == 'PENDING_DOWNLOAD' || station.icon_unsupported %]
+							<span class="rr-badge" style="cursor: move; color: var(--accent-color, currentColor);">
+								<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 2L14 13H2L8 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><text x="8" y="12" text-anchor="middle" font-size="7" font-weight="bold" fill="currentColor">!</text></svg>
+							</span>
+						[% ELSIF station.icon_state == 'HAS_CACHE' && station.icon_source == 'local' %]
+							<span class="rr-badge" title="Local folder logo" style="cursor: move; color: var(--accent-color, currentColor);">
+								<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5h5l1.5 2H15v7H1V5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+							</span>
+						[% END %]
+						</span>
+					</td>
+					<td>[% station.name | html %]</td>
+					<td class="rr-td-url">[% station.url | html %]</td>
+					<td class="rr-td-codec">[% station.codec ? station.codec : '&mdash;' %]</td>
+					<td class="rr-td-bitrate">[% station.bitrate ? station.bitrate _ ' kbps' : '&mdash;' %]</td>
+					<td class="rr-td-center">
+						<button class="rr-btn" type="button" onclick="rrMove([% loop.index %], -1)" [% IF loop.first %]disabled[% END %]>&#9650;</button><button class="rr-btn" type="button" onclick="rrMove([% loop.index %], 1)" [% IF loop.last %]disabled[% END %]>&#9660;</button>
+					</td>
+					<td class="rr-td-center">
+						<button class="rr-btn" type="button" onclick="rrEdit([% loop.index %])">&#9998;</button><button class="rr-btn rr-btn-del" type="button" onclick="rrDel([% loop.index %])">&#10005;</button>
+					</td>
+				</tr>
+				[% END %]
+			[% ELSE %]
+				<tr class="rr-empty-row"><td colspan="7">[% "RR_EMPTY" | string %]</td></tr>
+			[% END %]
+		</tbody>
+	</table>
+</div>
+
+<div class="rr-add" style="margin: 24px 0px;">
+    <h3 style="margin-top:0; margin-bottom:4px; font-size:var(--std-font-size);">[% "RR_ADD_STATION" | string %]</h3>
+    <div style="display: grid; grid-template-columns: calc(30% + 25px) 1fr; gap: 0 24px;">
+        <div>
+            <label style="display: block; font-size: var(--small-font-size); ">[% "RR_NAME" | string %]</label>
+            <input type="text" id="rr-new-name" class="rr-input-field" placeholder="My radio station" autocomplete="off" style="width:100%; box-sizing:border-box; margin-bottom: 12px;">
+        </div>
+        <div>
+            <label style="display: block; font-size: var(--small-font-size); ">[% "RR_URL" | string %]</label>
+            <input type="text" id="rr-new-url" class="rr-input-field" placeholder="https://example.com/myradio_mp3" autocomplete="off" style="width:100%; box-sizing:border-box; margin-bottom: 12px;">
+        </div>
+        <div>
+            <label style="display: block; font-size: var(--small-font-size); ">[% "RR_GENRE_COUNTRY" | string %]</label>
+            <input type="text" id="rr-new-meta" class="rr-input-field" placeholder="Chill | NL" autocomplete="off" style="width:100%; box-sizing:border-box; margin-bottom: 6px;">
+        </div>
+        <div>
+            <label style="display: block;  font-size: var(--small-font-size); ">[% "RR_ICON_URL" | string %]</label>
+            <input type="text" id="rr-new-icon" class="rr-input-field" placeholder="https://example.com/logo.png" autocomplete="off" style="width:100%; box-sizing:border-box; margin-bottom: 6px;">
+        </div>
+    </div>
+    <button class="rr-btn rr-btn-add" type="button" style="margin-top: 12px;" onclick="rrAdd()">[% "RR_ADD_BTN" | string %]</button>
+</div>
+
+<div style="margin: 24px 0px;">
+	<label style="font-size: var(--std-font-size); display: block; margin-bottom: 6px; font-weight: var(--bold-weight);">
+		[% "RR_CUSTOM_LOGO_DIR" | string %]
+	</label>
+	<input type="text" id="rr-custom-logo-dir" class="rr-input-field" value="[% custom_logo_dir | html %]" placeholder="[% 'RR_CUSTOM_LOGO_DIR_PLACEHOLDER' | string| html %]" onchange="rrSave()" autocomplete="off">
+	<div style="font-size: var(--small-font-size); opacity: 0.6; margin-top: 5px; line-height: 1.4;">
+		[% "RR_CUSTOM_LOGO_DIR_DESC" | string %] <code style="user-select: all; font-family: monospace; background: rgba(128, 128, 128, 0.15); padding: 2px 5px; border-radius: 3px; display: inline; word-break: break-all; margin-top: 4px;">[% default_logo_dir | html %]</code>
+	</div>
+</div>
+
+<!-- Checkbox 1 -->
+<div style="margin: 24px 0px;">
+	<label style="display: block; cursor: pointer; font-size: var(--std-font-size); line-height: 1.4; text-align: left;">
+		<input type="checkbox" name="pref_show_subtext" id="show_subtext" [% IF pref_show_subtext %]checked[% END %] onchange="rrSave()" style="width: 16px; height: 16px; margin: 0 8px 0 0; vertical-align: middle; cursor: pointer;">
+		[% "PLUGIN_RADIOSTATIONLIST_SHOW_SUBTEXT" | string %]
+	</label>
+</div>
+
+<!-- Checkbox 2: WebP Support -->
+<div style="margin: 24px 0px;">
+	<label style="display: block; cursor: pointer; font-size: var(--std-font-size); line-height: 1.4; text-align: left;">
+		<input type="checkbox" name="pref_allow_webp_playlist" id="allow_webp_playlist" [% IF pref_allow_webp_playlist %]checked[% END %] onchange="rrSave()" style="width: 16px; height: 16px; margin: 0 8px 0 0; vertical-align: middle; cursor: pointer;">
+		[% "PLUGIN_RADIOSTATIONLIST_ALLOW_WEBP" | string %]
+	</label>
+	<div style="font-size: var(--small-font-size); opacity: 0.6; margin-top: 4px; line-height: 1.4;">
+		[% "PLUGIN_RADIOSTATIONLIST_ALLOW_WEBP_HINT" | string %]
+	</div>
+</div>
+
+<!-- Checkbox 3 -->
+<div style="margin: 24px 0px;">
+    <label style="display: block; cursor: pointer; font-size: var(--std-font-size); line-height: 1.4; text-align: left;">
+        <input type="checkbox" name="pref_use_icon_proxy" id="use_icon_proxy" [% IF pref_use_icon_proxy %]checked[% END %] onchange="rrSave()" style="width: 16px; height: 16px; margin: 0 8px 0 0; vertical-align: middle; cursor: pointer;">
+        [% "PLUGIN_RADIOSTATIONLIST_USE_ICON_PROXY" | string %]
+    </label>
+    <div style="font-size: var(--small-font-size); opacity: 0.6; margin-top: 4px; line-height: 1.4;">
+        [% "PLUGIN_RADIOSTATIONLIST_USE_ICON_PROXY_DESC" | string %]
+    </div>
+    
+    <button type="button" class="rr-btn rr-btn-retry" style="margin-top: 14px; padding: 6px 14px;" onclick="rrResetErrors()">
+    &#8635; [% "RR_RETRY" | string %]
+	</button>
+</div>
+<!-- Search limit -->
+<div style="margin: 24px 0px;">
+    <label style="display: block; font-size: var(--std-font-size); font-weight: var(--bold-weight); margin-bottom: 8px;">
+        [% "RR_SEARCH_LIMIT" | string %]
+    </label>
+    <select id="rr-search-limit" onchange="rrSave()" style="background: transparent; border: 1px solid var(--border-color, #555); border-radius: 3px; padding: 4px 8px; font-size: var(--std-font-size); color: var(--text-color, inherit);">
+        <option value="50"  [% IF search_limit == 50  %]selected[% END %]>50</option>
+		<option value="75"  [% IF search_limit == 75  %]selected[% END %]>75</option>
+		<option value="100"  [% IF search_limit == 100  %]selected[% END %]>100</option>
+        <option value="150"  [% IF search_limit == 150  %]selected[% END %]>150</option>
+        <option value="200" [% IF search_limit == 200 %]selected[% END %]>200</option>
+		<option value="250" [% IF search_limit == 250 %]selected[% END %]>250</option>
+    </select>
+    <div style="font-size: var(--small-font-size); opacity: 0.6; margin-top: 4px; line-height: 1.4; text-align: left;">
+        [% "RR_SEARCH_LIMIT_DESC" | string %]
+    </div>
+</div>
+<!-- Final hints block -->
+<div class="statusMessage" style="line-height: 1.5; font-size: var(--std-font-size); margin: 24px 0px;">
+	<strong style="opacity: 0.6; font-weight: var(--bold-weight); color: var(--text-color, inherit);">[% "RR_SEARCH_TIPS_TITLE" | string %]</strong><br>
+	<span style="opacity: 0.6; color: var(--text-color, inherit);">[% "RR_SEARCH_TIPS_BODY" | string %]</span>
+</div>
+
+<script type="text/javascript">
+
+// Material грузит страницу настроек в iframe с путём вида /material/... —
+// это надёжный клиентский признак, бэкенд skin не прокидывает.
+(function() {
+    var isMaterial = window.location.pathname.indexOf('/material/') !== -1;
+    document.body.classList.add(isMaterial ? 'rr-skin-material' : 'rr-skin-default');
+})();
+var rrStations = [];
+
+document.addEventListener('touchstart', function() {}, { passive: true });
+
+// Managed replacement for :active state. 
+// pointerdown — adds special class to button under finger/cursor.
+// pointerup/pointercancel events are listened on document level, 
+// without coordinate checking — removes class on any release, 
+// regardless of where it happened (this solves the issue when mouse/finger is moved away from button).
+(function() {
+	var pressedEl = null;
+	function rrPress(e) {
+		var btn = e.target.closest && e.target.closest('.rr-btn');
+		if (!btn || btn.disabled) return;
+		if (pressedEl && pressedEl !== btn) pressedEl.classList.remove('rr-pressed');
+		pressedEl = btn;
+		btn.classList.add('rr-pressed');
+	}
+	function rrRelease() {
+		if (pressedEl) {
+			pressedEl.classList.remove('rr-pressed');
+			pressedEl = null;
+		}
+	}
+
+	document.addEventListener('pointerdown', rrPress, { passive: true });
+	['pointerup', 'pointercancel'].forEach(function(ev) {
+		document.addEventListener(ev, rrRelease, { passive: true });
+	});
+})();
+
+document.addEventListener('DOMContentLoaded', function() {
+	if (rrStations.some(function(s) { return s.icon_state === 'PENDING_DOWNLOAD' || s.icon_state === 'FETCH_FAILED_TEMP'; })) {
+		setTimeout(function() { rrSave(); }, 2000);
+	}
+});
+
+function rrForceRepaint(btn) {
+	if (!btn) return;
+	var clone = btn.cloneNode(true);
+	btn.replaceWith(clone);
+}
+
+// Safety net: if touch/mouse/pointer release events don't work 
+// on specific device — forced removal of "pressed" state 
+// happens when button action is definitely executed.
+function rrClearPressedButtons() {
+	var pressed = document.querySelectorAll('.rr-pressed');
+	for (var i = 0; i < pressed.length; i++) pressed[i].classList.remove('rr-pressed');
+}
+
+try {
+	var rawVal = document.getElementById('rr-stations-raw').value;
+	rrStations = rawVal ? JSON.parse(rawVal) : [];
+} catch(e) {
+	console.error('RadioStationList: Failed to parse initial stations json', e);
+}
+
+var rrI18n = document.getElementById('rr-i18n-data');
+var RR_STRINGS = {
+	errFill: rrI18n ? rrI18n.dataset.errFill : '',
+	empty: rrI18n ? rrI18n.dataset.empty : '',
+	errUrl: rrI18n ? rrI18n.dataset.errUrl : '',
+	alreadyAdded: rrI18n ? rrI18n.dataset.alreadyAdded : ''
+};
+
+// Image error handler that remembers status to prevent flickering during redraws.
+function rrOnImgError(img) {
+    img.onerror = null;
+    if (img.src.indexOf('broken.svg') !== -1) return;
+
+    // We selectively change src — without full rrRender() to avoid layout thrashing
+	// when multiple icons fail to load simultaneously (e.g., 20+ stations with poor internet)
+    img.src = '/plugins/RadioStationList/html/images/broken.svg';
+
+    // Update state in memory
+    var stationUrl = img.getAttribute('data-url');
+    var idx = rrStations.findIndex(function(s) { return s.url === stationUrl; });
+    if (idx !== -1) {
+        rrStations[idx].icon_state = 'BROWSER_FAILED';
+        rrStations[idx].display_icon = img.src;
+    }
+
+	// Selectively remove "!" badge if it existed (e.g., station was in FETCH_FAILED_TEMP
+	// with a badge, browser tried and failed — remove badge, broken status speaks for itself)
+    var badge = img.parentNode && img.parentNode.querySelector('.rr-badge');
+    if (badge) badge.parentNode.removeChild(badge);
+}
+
+function escapeHtml(str) {
+	if (!str) return '';
+	return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+// Drag and drop functions
+var rrDragIdx = null;
+
+function rrDragStart(e, index) {
+	rrDragIdx = index;
+	var row = e.currentTarget.closest('tr');
+	if (row) row.classList.add('rr-dragging');
+	e.dataTransfer.effectAllowed = 'move';
+	e.dataTransfer.setData('text/plain', index); 
+}
+
+// 1. Optimized mouse movement handler (detects top/bottom of row)
+function rrDragOver(e) {
+	e.preventDefault();
+	e.dataTransfer.dropEffect = 'move';
+	
+	var row = e.currentTarget.closest('tr');
+	if (!row) return;
+
+	var rect = row.getBoundingClientRect();
+	var relY = e.clientY - rect.top;
+	var isBottomHalf = relY > (rect.height / 2);
+
+	var newClass = isBottomHalf ? 'rr-drag-over-bottom' : 'rr-drag-over';
+	
+	// If class is already applied, simply update drop position and exit (thrashing protection)
+	if (row.classList.contains(newClass)) {
+		row.setAttribute('data-drop-pos', isBottomHalf ? 'after' : 'before');
+		return;
+	}
+
+	rrClearDragClasses();
+	row.classList.add(newClass);
+	row.setAttribute('data-drop-pos', isBottomHalf ? 'after' : 'before');
+}
+
+// 2. Universal row drop handler
+function rrDrop(e, index) {
+	e.preventDefault();
+	rrClearDragClasses();
+	if (rrDragIdx === null) return;
+
+	// BONUS PROTECTION: If dropped row onto itself (doesn't matter up or down) — exit immediately
+	if (rrDragIdx === index) return;
+
+	var row = e.currentTarget.closest('tr');
+	var targetIndex = index;
+
+	// If dropped in bottom half of cell, insert AFTER current element
+	if (row && row.getAttribute('data-drop-pos') === 'after') {
+		targetIndex = index + 1;
+	}
+
+	if (rrDragIdx === targetIndex) return;
+	rrDropAction(targetIndex);
+}
+
+// Movement logic
+function rrDropAction(targetIndex) {
+	rrSyncEditingInput();
+	// Safety: guarantee that the index is strictly within the array bounds
+	targetIndex = Math.min(Math.max(targetIndex, 0), rrStations.length);
+
+	var movedStation = rrStations.splice(rrDragIdx, 1)[0];
+	
+	// Adjust the index if shifting from top to bottom
+	if (rrDragIdx < targetIndex) {
+		targetIndex--;
+	}
+	
+	rrStations.splice(targetIndex, 0, movedStation);
+	rrRender();
+	rrSave();
+}
+
+function rrDragEnd(e) {
+	rrClearDragClasses();
+	var rows = document.querySelectorAll('.rr-drag-row');
+	for (var i = 0; i < rows.length; i++) {
+		rows[i].classList.remove('rr-dragging');
+	}
+	rrDragIdx = null;
+}
+
+function rrClearDragClasses() {
+	var elements = document.querySelectorAll('.rr-drag-over, .rr-drag-over-bottom');
+	for (var i = 0; i < elements.length; i++) {
+		elements[i].classList.remove('rr-drag-over', 'rr-drag-over-bottom');
+	}
+}
+
+// Pure function so that rrPatchRows() can selectively update icons without rebuilding the entire table
+function rrIconDisplayFor(st) {
+	var isBrowserFailed = (st.icon_state === 'BROWSER_FAILED' || st.icon_state === 'FETCH_FAILED_PERM');
+	var isPending = (st.icon_state === 'FETCH_FAILED_TEMP' || st.icon_state === 'PENDING_DOWNLOAD' || st.icon_unsupported);
+	var isLocal = (st.icon_state === 'HAS_CACHE' && st.icon_source === 'local');
+
+	var iconPath;
+	if (isBrowserFailed) {
+		iconPath = '/plugins/RadioStationList/html/images/broken.svg';
+	} else if (st.icon_state === 'NO_URL') {
+		iconPath = '/plugins/RadioStationList/html/images/nologo.svg';
+	} else if (st.icon_state === 'HAS_CACHE') {
+		iconPath = st.display_icon;
+	} else if (st.icon_state === 'PENDING_DOWNLOAD') {
+		iconPath = st.icon || st.display_icon || '/plugins/RadioStationList/html/images/nologo.svg';
+	} else {
+		iconPath = st.display_icon || st.icon || '/plugins/RadioStationList/html/images/nologo.svg';
+	}
+
+	var badgeHtml = '';
+	if (isPending ) {
+		badgeHtml = '<span class="rr-badge" style="color: var(--accent-color, currentColor);">' +
+			'<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 2L14 13H2L8 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><text x="8" y="12" text-anchor="middle" font-size="7" font-weight="bold" fill="currentColor">!</text></svg>' +
+			'</span>';
+	} else if (isLocal) {
+		badgeHtml = '<span class="rr-badge" title="Local folder logo" style="color: var(--accent-color, currentColor);">' +
+			'<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5h5l1.5 2H15v7H1V5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
+			'</span>';
+	}
+
+	return { iconPath: iconPath, badgeHtml: badgeHtml };
+}
+
+function rrRender() {
+	var tbody = document.getElementById('rr-table-body');
+	if (!tbody) return;
+
+	if (rrStations.length === 0) {
+		tbody.innerHTML = '<tr class="rr-empty-row"><td colspan="7">' + RR_STRINGS.empty + '</td></tr>';
+		return;
+	}
+
+	var html = '';
+	for (var i = 0; i < rrStations.length; i++) {
+		var st = rrStations[i];
+		var disp = rrIconDisplayFor(st);
+		var iconPath  = disp.iconPath;
+		var badgeHtml = disp.badgeHtml;
+		
+		if (st._editing) {
+			// Merge tags and country back into a string for editing
+			var combinedMeta = st.tags || '';
+			if (st.country) {
+				combinedMeta += (combinedMeta ? ' | ' : '') + st.country;
+			}
+
+			// ROW EDIT MODE (Balanced 2x2)
+			html += '<tr class="rr-row-editing rr-drag-row" '
+				+ 'ondragover="rrDragOver(event)" '
+				+ 'ondrop="rrDrop(event, ' + i + '); event.stopPropagation();">'
+				
+				// 1st Column: Station Logo (1/7)
+				+ '<td style="vertical-align:middle; text-align: center;">'
+				+ '<span class="rr-thumb-wrap">'
+				+ '<img class="rr-thumb" draggable="false" src="' + escapeHtml(iconPath) + '" data-url="' + escapeHtml(st.url || '') + '" onerror="rrOnImgError(this)">'
+				+ badgeHtml
+				+ '</span>'
+				+ '</td>'
+				
+				// 2nd Column: Name + Metadata (2/7)
+				+ '<td style="vertical-align:middle;">'
+				+ '<input type="text" id="rr-edit-name" value="' + escapeHtml(st.name || '') + '" class="rr-input-field" placeholder="My radio station" style="width:100%; box-sizing:border-box; margin-bottom:4px;">'
+				+ '<input type="text" id="rr-edit-meta" value="' + escapeHtml(combinedMeta) + '" class="rr-input-field" placeholder="Chill | NL" style="width:100%; box-sizing:border-box; font-size:0.9em; opacity:0.95;">'
+				+ '</td>'
+				
+				// 3rd Column (combines 4): Stream URL + Icon URL (3,4,5,6/7)
+				+ '<td colspan="4" style="vertical-align:middle;">'
+				+ '<input type="text" id="rr-edit-url" value="' + escapeHtml(st.url || '') + '" class="rr-input-field" placeholder="https://example.com/myradio_mp3" style="width:100%; box-sizing:border-box; margin-bottom:4px;">'
+				+ '<input type="text" id="rr-edit-icon" value="' + escapeHtml(st.icon || '') + '" class="rr-input-field" placeholder="https://example.com/logo.png" style="width:100%; box-sizing:border-box; font-size:0.9em; opacity:0.95;">'
+				+ '</td>'
+				
+				// 4th Column: Your NATIVE control buttons (7/7)
+				+ '<td class="rr-td-center rr-edit-actions">'
+				+ '<button class="rr-btn" type="button" onclick="rrSaveEdit(' + i + ')">&#10003;</button>'
+				+ '<button class="rr-btn" type="button" onclick="rrCancelEdit(' + i + ')">&#10005;</button>'
+				+ '</td>'
+				+ '</tr>';
+		} else {
+			// NORMAL MODE
+			var upBtn = (i > 0) 
+				? '<button class="rr-btn" type="button" onclick="rrMove(' + i + ', -1)">&#9650;</button>' 
+				: '<button class="rr-btn" type="button" disabled>&#9650;</button>';
+				
+			var downBtn = (i < rrStations.length - 1) 
+				? '<button class="rr-btn" type="button" onclick="rrMove(' + i + ', 1)">&#9660;</button>' 
+				: '<button class="rr-btn" type="button" disabled>&#9660;</button>';
+			html += '<tr ondragover="rrDragOver(event)" '
+				+ 'ondrop="rrDrop(event, ' + i + '); event.stopPropagation();" '
+				+ 'ondragend="rrDragEnd(event)" '
+				+ 'class="rr-drag-row">'
+				// 1st Column: Station Logo
+				+ '<td draggable="true" ondragstart="rrDragStart(event, ' + i + ')" style="text-align: center;">'
+				+ '<span class="rr-thumb-wrap">'
+				+ '<img class="rr-thumb" draggable="false" src="' + escapeHtml(iconPath) + '" data-url="' + escapeHtml(st.url || '') + '" onerror="rrOnImgError(this)" loading="lazy">'
+				+ badgeHtml
+				+ '</span>'
+				+ '</td>'
+				//Other Columns
+				+ '<td>' + escapeHtml(st.name) + '</td>'
+				+ '<td class="rr-td-url">' + escapeHtml(st.url) + '</td>'
+				+ '<td class="rr-td-codec">' + (escapeHtml(st.codec) || '&#8212;') + '</td>'
+				+ '<td class="rr-td-bitrate">' + (st.bitrate ? st.bitrate + ' kbps' : '&#8212;') + '</td>'
+				+ '<td class="rr-td-center">' + upBtn + downBtn + '</td>'
+				+ '<td class="rr-td-center">'
+				+ '<button class="rr-btn" type="button" onclick="rrEdit(' + i + ')">&#9998;</button>'
+				+ '<button class="rr-btn rr-btn-del" type="button" onclick="rrDel(' + i + ')">&#10005;</button>'
+				+ '</td>'
+				+ '</tr>';
+		}
+	}
+	tbody.innerHTML = html;
+}
+
+// Selectively updates icons/badges in already rendered rows without rebuilding the entire table
+// tbody.innerHTML — eliminates flickering and micro-shifting of images on every polling tick
+// Returns false if the structure doesn't match — in this case, the calling code should fall back to a full rrRender()
+function rrPatchRows(newStations) {
+	var tbody = document.getElementById('rr-table-body');
+	if (!tbody) return false;
+	var rows = tbody.children;
+	if (rows.length !== newStations.length) return false;
+
+	for (var i = 0; i < newStations.length; i++) {
+		var st  = newStations[i];
+		var row = rows[i];
+		var img = row.querySelector('img.rr-thumb');
+		if (!img) return false;
+
+		var disp = rrIconDisplayFor(st);
+		var absoluteNew = new URL(disp.iconPath, location.href).href;
+		if (img.src !== absoluteNew) {
+			img.src = disp.iconPath;
+		}
+
+		var cell = img.parentNode;
+		var existingBadge = cell.querySelector('.rr-badge');
+		var wantsBadge = disp.badgeHtml !== '';
+		if (wantsBadge) {
+			if (!existingBadge || existingBadge.outerHTML !== disp.badgeHtml) {
+				if (existingBadge) existingBadge.parentNode.removeChild(existingBadge);
+				img.insertAdjacentHTML('afterend', disp.badgeHtml);
+			}
+		} else if (existingBadge) {
+			existingBadge.parentNode.removeChild(existingBadge);
+		}
+	}
+	return true;
+}
+
+// Editing functions
+function rrEdit(i) {
+	rrSyncEditingInput();
+	// Cancel editing of other rows if they are open
+	for (var k = 0; k < rrStations.length; k++) { rrStations[k]._editing = false; }
+	rrStations[i]._editing = true;
+	setTimeout(rrRender, 150);
+}
+
+function rrCancelEdit(i) {
+	rrStations[i]._editing = false;
+	setTimeout(rrRender, 150);
+}
+
+function rrIsValidStreamUrl(url) {
+    // 1. Strict check of raw string for allowed ASCII characters and scheme
+    if (!/^https?:\/\/[\x21-\x7E]+$/i.test(url)) {
+        return false;
+    }
+    
+    // 2. Structure validation via built-in parser
+    try {
+        var u = new URL(url);
+        return /^https?:$/i.test(u.protocol) && /^[\x21-\x7E]+$/.test(u.hostname + u.pathname + u.search + u.hash);
+    } catch (e) {
+        return false;
+    }
+}
+
+function rrSyncEditingInput() {
+	var idx = rrStations.findIndex(function(s) { return s._editing; });
+	if (idx === -1) return;
+
+	var n  = document.getElementById('rr-edit-name');
+	var u  = document.getElementById('rr-edit-url');
+	var ic = document.getElementById('rr-edit-icon');
+	var m  = document.getElementById('rr-edit-meta');
+	if (!n || !u) return;
+
+	var name = n.value.trim();
+	var url  = u.value.trim();
+	if (!name || !url || !rrIsValidStreamUrl(url)) return;
+
+	var nameChangedSync = (rrStations[idx].name || '') !== name;
+	rrStations[idx].name = name;
+	rrStations[idx].url  = url;
+
+	if (ic) {
+		var icon = ic.value.trim();
+		if ((rrStations[idx].icon || '') !== icon || nameChangedSync) {
+			rrStations[idx].icon = icon;
+			rrStations[idx].display_icon = '/plugins/RadioStationList/html/images/nologo.svg';
+			rrStations[idx].icon_state = 'PENDING_DOWNLOAD';
+		}
+	}
+	if (m) {
+		var metaParts = m.value.trim().split('|');
+		rrStations[idx].tags    = metaParts[0] ? metaParts[0].trim() : '';
+		rrStations[idx].country = metaParts[1] ? metaParts[1].trim() : '';
+	}
+}
+
+function rrSaveEdit(i) {
+	if (document.activeElement) document.activeElement.blur();
+	rrClearPressedButtons();
+	var n = document.getElementById('rr-edit-name').value.trim();
+	var u = document.getElementById('rr-edit-url').value.trim();
+	var ic = document.getElementById('rr-edit-icon').value.trim();
+	var m = document.getElementById('rr-edit-meta').value.trim(); 
+	var err = document.getElementById('rr-error');
+
+	if (!n || !u) {
+		err.textContent = RR_STRINGS.errFill;
+		err.style.display = 'block';
+		setTimeout(function() { err.style.display = 'none'; }, 4000);
+		return;
+	}
+	if (!rrIsValidStreamUrl(u)) {
+		err.textContent = RR_STRINGS.errUrl;
+		err.style.display = 'block';
+		setTimeout(function() { err.style.display = 'none'; }, 4000);
+		return;
+	}
+	
+	// DUPLICATE CHECK DURING EDITING
+    var isDuplicate = rrStations.some(function(s, idx) {
+        // Check all stations EXCEPT the one currently being edited (idx !== i)
+        return idx !== i && (s.url || '').toLowerCase() === u.toLowerCase();
+    });
+
+    if (isDuplicate) {
+        err.textContent = RR_STRINGS.alreadyAdded;
+        err.style.display = 'block';
+        setTimeout(function() { err.style.display = 'none'; }, 4000);
+        return;
+    }
+	
+	if (ic && !rrIsValidStreamUrl(ic)) {
+    err.textContent = RR_STRINGS.errUrl;
+    err.style.display = 'block';
+    setTimeout(function() { err.style.display = 'none'; }, 4000);
+    return;
+	}
+
+	err.style.display = 'none';
+
+	var nameChanged = (rrStations[i].name || '') !== n;	
+	// Update text data
+	rrStations[i].name = n;
+	rrStations[i].url = u;
+
+	// Distribute modified string across object's meta fields
+	var metaParts = m.split('|');
+	var newCountry = metaParts[1] ? metaParts[1].trim() : '';
+	if ((rrStations[i].country || '') !== newCountry) {
+		rrStations[i].countrycode = '';
+	}
+	rrStations[i].tags = metaParts[0] ? metaParts[0].trim() : '';
+	rrStations[i].country = newCountry;
+
+	// SMART ICON UPDATER ON CLIENT:
+	// Local file in custom folder takes precedence over icon-URL, so changing the name
+	// can always change the picture — even if the icon field is already set and hasn't changed.
+	if ((rrStations[i].icon || '') !== ic || nameChanged) {
+		rrStations[i].icon = ic;
+
+		// UI transition state
+		rrStations[i].display_icon = '/plugins/RadioStationList/html/images/nologo.svg';
+		rrStations[i].icon_state = 'PENDING_DOWNLOAD';
+	}
+
+	rrStations[i]._editing = false;
+
+	setTimeout(rrRender, 150);
+	rrSave();
+}
+
+function rrMove(i, dir) {
+	var j = i + dir;
+	if (j < 0 || j >= rrStations.length) return;
+	rrSyncEditingInput();
+	var tmp = rrStations[i];
+	rrStations[i] = rrStations[j];
+	rrStations[j] = tmp;
+	setTimeout(rrRender, 150);
+	rrSave();
+}
+
+function rrDel(i) {
+	rrSyncEditingInput();
+	// Remove station from local array by its index
+	rrStations.splice(i, 1);
+	
+	// Immediately redraw the table for the user
+	setTimeout(rrRender, 150);
+	
+	// Send updated array to the server (auto-cache cleanup will trigger!)
+	rrSave();
+}
+
+function rrResetErrors() {
+	setTimeout(function() { 
+        if (document.activeElement) document.activeElement.blur();
+        rrForceRepaint(document.querySelector('.rr-btn-retry'));
+    }, 150);
+	
+	// VISUAL RESET (Empty square without logos)
+	var needsRender = false;
+	for (var i = 0; i < rrStations.length; i++) {
+		var st = rrStations[i];
+		// Reset both permanent and temporary errors
+		if (st.icon_state === 'FETCH_FAILED_PERM' || st.icon_state === 'FETCH_FAILED_TEMP' || st.icon_state === 'BROWSER_FAILED') {
+			st.icon_state = 'PENDING_DOWNLOAD';
+			st.display_icon = ''; // Completely clear the path, leaving default empty square
+			needsRender = true;
+		}
+	}
+	
+	// If stations with errors are found, instantly redraw UI
+	// so the user sees that icons have cleared and are in loading state
+	if (needsRender) {
+		rrRender();
+	}
+
+	var body = new URLSearchParams();
+	body.append('reset_icon_errors', '1');
+	fetch(location.pathname, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: body.toString()
+	}).then(function() {
+		// Start saving with polling. Since we set PENDING_DOWNLOAD,
+		// smart polling will tick every 2 seconds until backend resolves
+		// all timeouts (up to 180 seconds thanks to increased rrPollCount limit)
+		rrSave();
+	});
+}
+
+function rrAdd() {
+	setTimeout(function() { 
+        if (document.activeElement) document.activeElement.blur();
+        rrForceRepaint(document.querySelector('.rr-btn-add'));
+    }, 150);
+	rrSyncEditingInput();
+	var nameInp = document.getElementById('rr-new-name');
+	var urlInp  = document.getElementById('rr-new-url');
+	var iconInp = document.getElementById('rr-new-icon');
+	var metaInp = document.getElementById('rr-new-meta'); 
+	var err     = document.getElementById('rr-error');
+
+	var name = nameInp.value.trim();
+	var url  = urlInp.value.trim();
+	var icon = iconInp.value.trim();
+	var meta = metaInp.value.trim(); 
+
+	if (!name || !url) {
+		err.textContent = RR_STRINGS.errFill;
+		err.style.display = 'block';
+		setTimeout(function() { err.style.display = 'none'; }, 4000);
+		return;
+	}
+	if (!rrIsValidStreamUrl(url)) {
+		err.textContent = RR_STRINGS.errUrl;
+		err.style.display = 'block';
+		setTimeout(function() { err.style.display = 'none'; }, 4000);
+		return;
+	}
+	// Icon is optional, but if provided, it must be a valid URL
+	if (icon && !rrIsValidStreamUrl(icon)) {
+		err.textContent = RR_STRINGS.errUrl;
+		err.style.display = 'block';
+		setTimeout(function() { err.style.display = 'none'; }, 4000);
+		return;
+	}
+	if (rrStations.some(function(s) { return (s.url || '').toLowerCase() === url.toLowerCase(); })) {
+		err.textContent = RR_STRINGS.alreadyAdded;
+		err.style.display = 'block';
+		setTimeout(function() { err.style.display = 'none'; }, 4000);
+		return;
+	}
+	err.style.display = 'none';
+	document.activeElement.blur();
+
+	// Distribute string across two different metadata fields
+	var metaParts = meta.split('|');
+	var tags = metaParts[0] ? metaParts[0].trim() : '';
+	var country = metaParts[1] ? metaParts[1].trim() : '';
+
+	rrStations.push({ 
+		name: name, 
+		url: url, 
+		icon: icon, 
+		display_icon: '/plugins/RadioStationList/html/images/nologo.svg',
+		icon_state: 'PENDING_DOWNLOAD',
+		bitrate: 0, 
+		codec: '',
+		tags: tags,
+		country: country,
+		countrycode: ''
+	});
+
+	nameInp.value = '';
+	urlInp.value  = '';
+	iconInp.value = '';
+	metaInp.value = '';
+
+	rrRender();
+	rrSave();
+}
+
+var rrSaveId = 0;
+var rrSaveInFlight = false;
+var rrSaveQueued = false;
+var rrPollCount = 0;
+
+function rrSave() {
+	rrClearPressedButtons();
+
+	// Prevent two saves from flying in parallel — otherwise responses might
+	// come out of order, and newer state could be overwritten by older one.
+	if (rrSaveInFlight) {
+		rrSaveQueued = true;
+		return;
+	}
+	rrSaveInFlight = true;
+
+	var currentId = ++rrSaveId;
+	var body = new URLSearchParams();
+	
+	// Leak fix: create clean array copy without row editing flag
+	var clean = rrStations.map(function(s) {
+		var c = Object.assign({}, s);
+		delete c._editing;
+
+		return c;
+	});
+	body.append('stations_json', JSON.stringify(clean));
+
+	// 2. Read custom logo folder path
+	var dirField = document.getElementById('rr-custom-logo-dir');
+	if (dirField) {
+		body.append('custom_logo_dir', dirField.value.trim());
+	}
+
+	var subtextEl = document.getElementById('show_subtext');
+	if (subtextEl) {
+		body.append('pref_show_subtext', subtextEl.checked ? 1 : 0);
+	}
+	// Save proxy status:
+	var proxyEl = document.getElementById('use_icon_proxy');
+	if (proxyEl) {
+		body.append('pref_use_icon_proxy', proxyEl.checked ? 1 : 0);
+	}
+	// Save WebP playlist preference:
+	var webpEl = document.getElementById('allow_webp_playlist');
+	if (webpEl) {
+		body.append('pref_allow_webp_playlist', webpEl.checked ? 1 : 0);
+	}
+	var limitEl = document.getElementById('rr-search-limit');
+	if (limitEl) {
+		body.append('search_limit', limitEl.value);
+	}
+
+	fetch(location.pathname, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: body.toString()
+	})
+	.then(function(res) { return res.text(); })
+	.then(function(html) {
+		rrSaveInFlight = false;
+
+		if (rrSaveQueued) { rrSaveQueued = false; rrSave(); }
+
+		if (currentId !== rrSaveId) return;
+
+		var parser = new DOMParser();
+		var doc = parser.parseFromString(html, 'text/html');
+		var raw = doc.getElementById('rr-stations-raw');
+		if (raw) {
+			try {
+				var newStations = JSON.parse(raw.value || '[]');
+				// ACTIVE INPUT PROTECTION: read text from DOM if row is being edited
+				var editIdx = rrStations.findIndex(function(s) { return s._editing; });
+				if (editIdx !== -1) {
+					rrSyncEditingInput(); 
+				}
+
+				for (var ni = 0; ni < newStations.length; ni++) {
+					if (rrStations[ni]) {
+						// FLASHING PROTECTION: If browser has already rejected the link, prevent server from forcing us to download it again
+						if (rrStations[ni].url === newStations[ni].url) {
+						// Allow server to "heal" the icon if it successfully cached it —
+						// otherwise one random onerror failure (e.g., during very first page load)
+						// would mark station permanently, even after successful disk download
+						if (rrStations[ni].url === newStations[ni].url && rrStations[ni].icon_state === 'BROWSER_FAILED' && newStations[ni].icon_state !== 'HAS_CACHE') {
+							newStations[ni].icon_state = 'BROWSER_FAILED';
+							newStations[ni].display_icon = '/plugins/RadioStationList/html/images/broken.svg';
+						}
+						}
+						// Transfer typed text over server response
+						if (ni === editIdx) {
+							newStations[ni]._editing = true;
+							newStations[ni].name = rrStations[ni].name;
+							newStations[ni].url  = rrStations[ni].url;
+							newStations[ni].icon = rrStations[ni].icon;
+							newStations[ni].tags = rrStations[ni].tags;
+							newStations[ni].country = rrStations[ni].country;
+						}
+					}
+				}
+
+				var oldStations = rrStations; // before overwrite — for structure comparison (see rrPatchRows)
+				// editIdx === -1 is no longer required: rrPatchRows only touches <img>/badge
+				// in thumbnail cell and never affects inputs of editable row —
+				// so patching is possible during active input without losing focus/keyboard
+				var canPatch = oldStations.length === newStations.length &&
+					oldStations.every(function(s, idx) { return s.url === newStations[idx].url; });
+
+				rrStations = newStations;
+
+				var patched = false;
+				if (canPatch) {
+					try { patched = rrPatchRows(newStations); } catch (e) { patched = false; }
+				}
+				if (!patched) rrRender();
+
+				// SMART POLLING: FETCH_FAILED_TEMP is also not "final", backend
+				// continues retrying it in background for up to an hour/until ban — need
+				// to wait for either HAS_CACHE or FETCH_FAILED_PERM.
+				var needsPoll = newStations.some(function(s) { 
+					return s.icon_state === 'PENDING_DOWNLOAD' || s.icon_state === 'FETCH_FAILED_TEMP';
+				});
+
+				// Есть ли реальный прогресс с прошлого тика — если да, даём поллингу ещё времени
+				var progressed = oldStations.length === newStations.length &&
+					oldStations.some(function(s, idx) { return s.icon_state !== newStations[idx].icon_state; });
+				// Row editing no blocks polling.
+				// Text transfer function above reliably protects active user input.
+				if (needsPoll) {
+					if (!rrPollCount) rrPollCount = 0;
+					if (progressed) rrPollCount = 0;
+					if (rrPollCount < 300) {
+						rrPollCount++;
+						setTimeout(function() { rrSave(); }, 2000);
+					} else {
+						rrPollCount = 0;
+					}
+				} else {
+					// If no downloads are in progress (everything moved to HAS_CACHE, BROWSER_FAILED etc.),
+					// polling stops. Previous rrRender() call already rendered new icons.
+					rrPollCount = 0;
+				}
+			} catch(e) {}
+		}
+	})
+	.catch(function(e) {
+		rrSaveInFlight = false;
+		rrSaveQueued = false;
+		rrPollCount = 0;
+		console.error('RadioStationList save error:', e);
+	});
+}
+
+</script>
+
+[% PROCESS settings/footer.html %]

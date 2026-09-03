@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<plugin>
+	<name>RADIO_STATION_LIST</name>
+	<description>PLUGIN_RADIOSTATIONLIST_MODULE_DESC</description>
+	<icon>plugins/RadioStationList/html/images/mystations.svg</icon>
+	<creator>flurmind</creator>
+	<email>flurmind@gmail.com</email>
+	<homepageURL>https://github.com/flurmind/RadioStationList</homepageURL>
+	<version>1.0.0</version>
+	<defaultState>enabled</defaultState>
+	<module>Plugins::RadioStationList::Plugin</module>
+	<targetApplication>
+		<minVersion>8.0.0</minVersion>
+		<maxVersion>*</maxVersion>
+		<id>SlimServer</id>
+	</targetApplication>
+</plugin>
