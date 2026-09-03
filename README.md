@@ -23,7 +23,7 @@ A fully customizable personal list of internet radio stations. For each station 
 - genre;
 - country.
 
-The station order can be changed on the settings page using **drag-and-drop** or the ▲▼ move buttons.
+The station order can be changed on the settings page by dragging station logos (drag-and-drop) or using the ▲▼ move buttons.
 
 * * *
 
