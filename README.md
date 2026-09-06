@@ -2,7 +2,7 @@
 
 🌐 **English** | [Русский](README.ru.md)
 
-A plugin for [Lyrion Music Server (LMS)](https://lyrion.org/) that lets you build your own custom collection of internet radio stations, selecting the ones that offer the best stream quality. Conveniently manage your list: add new stations via direct stream URLs, edit station data (including logos), reorder them, and search for new stations from the [Radio Browser](https://www.radio-browser.info) database with filtering by stream quality and metadata.
+A plugin for [Lyrion Music Server (LMS)](https://lyrion.org/) that lets you build your own collection of internet radio stations with good audio quality (MP3/AAC/OGG 256–320 kbps, FLAC — lossless). Conveniently manage your list: add new stations via direct stream URLs, edit station data (including logos), reorder them, and search for new stations from the [Radio Browser](https://www.radio-browser.info) database with filtering by stream quality and metadata.
 > Technical package name: `RadioStationList`
 
 ## 📸 Screenshots
