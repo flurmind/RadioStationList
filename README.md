@@ -22,17 +22,17 @@ A fully customizable personal list of radio stations. You can add any station ma
 - genre;
 - country.
 
-Genre and country share a single field, separated by `|` — e.g. `Chill | NL`. Country is optional; you can leave just the genre (`Chill`) or the field entirely empty.
+Genre and country share a single field, separated by `|` — e.g. `Chill | NL`. Country is optional; you can leave just the genre (`Chill`) or the field entirely empty.  
 The station order can be changed on the settings page by dragging station logos (drag-and-drop) or using the ▲▼ move buttons.
 
-**JSON Backup & Restore**
+**JSON Backup & Restore**  
 Export your full station list (including bitrate, codec, country, homepage, and all other fields) to a single file, and restore it later. Restoring merges into your current list; stations already present (matched by URL) are skipped, nothing is overwritten or duplicated. To completely reset the list, use the "Clear station list" button.
 Raw exports from the Radio Browser website are also accepted directly (from file or URL), no conversion needed — curate a list there with its filters (genre, country, votes, quality), export, and import in one go. This brings across everything Radio Browser has for each station: name, stream URL, logo, codec, bitrate, genre tags, country, homepage, and its catalog ID. Imports are capped at [100] stations per file.
 
-**M3U Export & Import**
+**M3U Export & Import**  
 Export stations to a standard M3U playlist for use in other media players. When importing, both extended tag playlists (#EXTINF, tvg-logo, group-title) and plain URL lists without metadata are supported — the plugin will automatically attempt to retrieve data from the stream headers. Entries pointing to local files instead of network URLs are safely skipped.
 
-**Background Metadata Extraction (ICY Tags)**
+**Background Metadata Extraction (ICY Tags)**  
 When adding a station manually by URL (even without a name) or importing a plain playlist, the plugin automatically fetches the station name, genre, website, codec, and bitrate in the background directly from the stream's ICY headers.
 * **Active Input Protection:** Extracted data only populates empty fields and will never overwrite values you edit manually.
 * **Resource Friendly:** Streams without ICY metadata or unavailable servers are ignored after a few retries to prevent unnecessary network requests.
@@ -52,7 +52,7 @@ In Radio Browser search mode this line is always shown, and a color indicator is
 | 🟡  | **128–191 kbps** |
 | 🔴  | **below 128 kbps** |
 
-**Codec and Bitrate Detection**
+**Codec and Bitrate Detection**  
 The plugin automatically verifies stream parameters when stations are added manually, imported from Radio Browser, or imported via JSON/M3U — whenever bitrate data is missing. For MP3 and AAC (ADTS) streams, measurement is performed in the background without starting playback by analyzing frame headers. For Ogg containers (Vorbis, Opus, FLAC), the exact codec and bitrate are identified through container inspection or refined upon the first playback of the station. You can also trigger a bulk probe for all unknown stations using the "Refresh stream info" button in settings — the table updates in real time as measurements complete.
 > Note: For certain stream types, exact bitrate data may remain unavailable depending on server transmission headers.
 
