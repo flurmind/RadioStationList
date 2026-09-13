@@ -4,11 +4,11 @@
     <title lang="EN">My Stations</title>
   </details>
   <plugins>
-    <plugin name="RadioStationList" version="1.0.0" minTarget="8.0.0" maxTarget="*">
+    <plugin name="RadioStationList" version="1.1.0" minTarget="8.0.0" maxTarget="*">
       <title lang="EN">My Stations</title>
       <desc lang="EN">Custom station list with Web UI management + Radio Browser catalog.</desc>
-      <url>https://github.com/flurmind/RadioStationList/releases/download/1.0.0/RadioStationList-1.0.0.zip</url>
-      <sha>8171d2b4dd135bd78719d2858379d78b1f21eea3</sha>
+      <url>https://github.com/flurmind/RadioStationList/releases/download/1.1.0/RadioStationList-1.1.0.zip</url>
+      <sha>8334497aaf5e73e194ce687efe38da1a3ba6034b</sha>
       <creator>flurmind</creator>
       <email>flurmind@gmail.com</email>
       <link>https://github.com/flurmind/RadioStationList</link>
