@@ -8,9 +8,9 @@ A plugin for [Lyrion Music Server (LMS)](https://lyrion.org/) that lets you buil
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="screenshots/mystations_page.png" alt="My Stations" width="28%">
-  <img src="screenshots/radiobrowser_search.png" alt="Radio Browser Search" width="28%">
-  <img src="screenshots/settings.png" alt="Settings" width="40%">
+  <img src="screenshots/mystations_page.png" alt="My Stations" width="25%">
+  <img src="screenshots/radiobrowser_search.png" alt="Radio Browser Search" width="25%">
+  <img src="screenshots/settings.png" alt="Settings" width="44%">
 </p>
 
 ## 📻 Station Management
@@ -22,7 +22,20 @@ A fully customizable personal list of radio stations. You can add any station ma
 - genre;
 - country.
 
+Genre and country share a single field, separated by `|` — e.g. `Chill | NL`. Country is optional; you can leave just the genre (`Chill`) or the field entirely empty.
 The station order can be changed on the settings page by dragging station logos (drag-and-drop) or using the ▲▼ move buttons.
+
+**JSON Backup & Restore**
+Export your full station list (including bitrate, codec, country, homepage, and all other fields) to a single file, and restore it later. Restoring merges into your current list; stations already present (matched by URL) are skipped, nothing is overwritten or duplicated. To completely reset the list, use the "Clear station list" button.
+Raw exports from the Radio Browser website are also accepted directly (from file or URL), no conversion needed — curate a list there with its filters (genre, country, votes, quality), export, and import in one go. This brings across everything Radio Browser has for each station: name, stream URL, logo, codec, bitrate, genre tags, country, homepage, and its catalog ID. Imports are capped at [100] stations per file.
+
+**M3U Export & Import**
+Export stations to a standard M3U playlist for use in other media players. When importing, both extended tag playlists (#EXTINF, tvg-logo, group-title) and plain URL lists without metadata are supported — the plugin will automatically attempt to retrieve data from the stream headers. Entries pointing to local files instead of network URLs are safely skipped.
+
+**Background Metadata Extraction (ICY Tags)**
+When adding a station manually by URL (even without a name) or importing a plain playlist, the plugin automatically fetches the station name, genre, website, codec, and bitrate in the background directly from the stream's ICY headers.
+* **Active Input Protection:** Extracted data only populates empty fields and will never overwrite values you edit manually.
+* **Resource Friendly:** Streams without ICY metadata or unavailable servers are ignored after a few retries to prevent unnecessary network requests.
 
 * * *
 
@@ -39,7 +52,9 @@ In Radio Browser search mode this line is always shown, and a color indicator is
 | 🟡  | **128–191 kbps** |
 | 🔴  | **below 128 kbps** |
 
-> For manually added stations, the codec and bitrate are initially unknown — they are detected automatically the first time playback starts. For some streams (e.g. AAC) this information may be unavailable.
+**Codec and Bitrate Detection**
+The plugin automatically verifies stream parameters when stations are added manually, imported from Radio Browser, or imported via JSON/M3U — whenever bitrate data is missing. For MP3 and AAC (ADTS) streams, measurement is performed in the background without starting playback by analyzing frame headers. For Ogg containers (Vorbis, Opus, FLAC), the exact codec and bitrate are identified through container inspection or refined upon the first playback of the station. You can also trigger a bulk probe for all unknown stations using the "Refresh stream info" button in settings — the table updates in real time as measurements complete.
+> Note: For certain stream types, exact bitrate data may remain unavailable depending on server transmission headers.
 
 * * *
 
@@ -134,7 +149,12 @@ The plugin lets you search for stations directly in the **Radio Browser** databa
 | `#` | search by genre | `#rock` |
 | `@` | country code (ISO) | `@DE` |
 | `?` | minimum bitrate | `?192` |
+| `!` | audio codec | `!ogg`, `!mp3` |
 | plain text | search by name | `record chill` |
+
+> **Notes:**
+> - **Lossless streams:** Most FLAC/lossless streams in Radio Browser are registered under the `ogg` codec. Search with `!ogg` to find them — the plugin will automatically refine the codec to FLAC upon addition or first playback.
+> - **Bitrate filter:** Some stations in the database are missing bitrate information and will be excluded if the `?` filter is used.
 
 A found station can be added straight to "My Stations".
 
@@ -184,7 +204,3 @@ If you'd like to add a new language or improve an existing translation:
 1.  Copy the `strings.txt` file from the repository.
 2.  Add strings for the language you want (e.g. `DE`, `FR`, `NL`).
 3.  Submit a Pull Request.
-
-## 🗺️ Roadmap / Planned Features
-- [ ] **JSON Backup:** Export and import your full station list as JSON, for backup and restore.
-- [ ] **M3U Export / Import:** Export your stations to an M3U playlist for use in other players, and import stations from an M3U playlist.
