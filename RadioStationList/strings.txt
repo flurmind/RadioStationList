@@ -11,8 +11,12 @@ PLUGIN_RADIOSTATIONLIST_LOG_DESC
 	RU	Логирование плагина «Мои станции»
 
 RR_NAME
-	EN	Station Name
-	RU	Название станции
+	EN	Name
+	RU	Название
+	
+RR_NAME_ADD
+	EN	Name (optional)
+	RU	Название (необязательно)
 
 RR_URL
 	EN	Audio Stream URL (http:// or https://)
@@ -54,17 +58,25 @@ RR_ADD_BTN
 	EN	Add
 	RU	Добавить
 
-EMPTY_FIELD
-	EN	Please fill in Name and URL
-	RU	Заполните поля: Название и URL
+RR_ERROR_NO_URL
+	EN	Please enter stream URL
+	RU	Укажите URL аудиопотока
 
+RR_ERROR_NO_NAME
+	EN	Name cannot be empty
+	RU	Название не может быть пустым
+	
 RR_ERROR_URL
 	EN	Invalid link. Make sure it starts with http:// or https:// and contains no spaces or non-Latin characters (encode them as %XX if needed)
 	RU	Некорректная ссылка. Убедитесь, что она начинается с http:// или https:// и не содержит пробелов и не-латинских символов (закодируйте их как %XX при необходимости)
 
 RR_RETRY
-	EN	Retry failed icons
-	RU	Повторить загрузку неудачных логотипов
+	EN	Retry failed logos
+	RU	Обновить битые логотипы
+
+RR_MEASURE_BITRATE_HINT
+	EN	Update stream details
+	RU	Обновить данные о потоках
 
 RR_CUSTOM_LOGO_DIR
 	EN	Custom Logos Folder Path
@@ -87,15 +99,15 @@ PLUGIN_RADIOSTATIONLIST_ALLOW_WEBP
 	RU	Поддержка WebP логотипов для онлайн-станций (только для веб-интерфейсов)
 
 PLUGIN_RADIOSTATIONLIST_ALLOW_WEBP_HINT
-	EN	Allows passing online WebP logos directly to the playlist. Note: LMS does not process WebP natively, and hardware players (like Squeezebox Touch) cannot display it.
-	RU	Разрешает проброс WebP-логотипов онлайн-станций в плейлист. Примечание: LMS не поддерживает обработку WebP, а аппаратные плееры (Squeezebox Touch) его не отображают. 
+	EN	Allows passing online WebP logos directly to the playlist. Note: LMS does not process WebP natively, and hardware players cannot display it.
+	RU	Разрешает проброс WebP-логотипов онлайн-станций в плейлист. Примечание: LMS не поддерживает обработку WebP, а аппаратные плееры его не отображают. 
 
 PLUGIN_RADIOSTATIONLIST_USE_ICON_PROXY
-	EN	Use proxy fallback for blocked or broken icons (wsrv.nl)
-	RU	Использовать прокси для заблокированных и битых иконок (wsrv.nl)
+	EN	Use proxy fallback for blocked or broken logos (wsrv.nl)
+	RU	Использовать прокси для заблокированных или битых логотипов (wsrv.nl)
 
 PLUGIN_RADIOSTATIONLIST_USE_ICON_PROXY_DESC
-	EN	Implements a 2-strike system for downloading logos. Attempt 1 is always direct. If it fails (due to ISP blocks, network errors, or unprocessable links), Attempt 2 routes via the wsrv.nl CDN proxy when enabled, or retries directly when disabled. After 2 failed strikes, the logo URL is blacklisted and replaced with the default icon.
+	EN	Implements a 2-strike system for downloading logos. Attempt 1 is always direct. If it fails (due to ISP blocks, network errors, or unprocessable links), Attempt 2 routes via the wsrv.nl CDN proxy when enabled, or retries directly when disabled. After 2 failed strikes, the logo URL is blacklisted and replaced with the default.
 	RU	Использует систему из 2 попыток загрузки логотипов. 1-я попытка — всегда прямая. В случае ошибки (из-за блокировок провайдера, сетевых сбоев или проблем с обработкой в LMS) 2-я попытка выполняется через CDN-прокси wsrv.nl (если включено) или повторно напрямую (если выключено). После 2 ошибок URL логотипа банится и заменяется дефолтным.
 
 RR_SEARCH_LIMIT
@@ -107,8 +119,8 @@ RR_SEARCH_LIMIT_DESC
 	RU	Количество станций, загружаемых за один API-запрос. Значение должно быть достаточно большим, чтобы результаты поиска выходили за нижнюю границу вашего экрана — иначе автоматическая подгрузка при прокрутке (бесконечный скролл) не сработает. Оптимальный размер кэша также обеспечивает более быструю одновременную загрузку прямых логотипов на странице.
 
 RR_SEARCH_RADIO_BROWSER
-	EN	Radio Browser (name #genre @country ?bitrate)
-	RU	Radio Browser (название #жанр @страна ?битрейт)
+	EN	R. Browser (name #tag @country ?bitrate !codec)
+	RU	R. Browser (имя #тег @страна ?битрейт !кодек)
 
 RR_NO_RESULTS
 	EN	No stations found.
@@ -139,12 +151,8 @@ RR_SEARCH_TIPS_TITLE
 	RU	Руководство по поиску Radio Browser
 
 RR_SEARCH_TIPS_BODY
-	EN	Search by name, genre, country, and bitrate using prefixes — combine in any order, separated by spaces:<br>&nbsp;&nbsp;•&nbsp;plain text — searches station name;<br>&nbsp;&nbsp;•&nbsp;# — genre;<br>&nbsp;&nbsp;•&nbsp;@ — <a href="https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes" target="_blank">ISO country code</a>;<br>&nbsp;&nbsp;•&nbsp;? — minimum bitrate (kbps).<br>Examples:<br>&nbsp;&nbsp;•&nbsp;<code>#chill @th ?256</code> — chill stations from Thailand with 256+ kbps;<br>&nbsp;&nbsp;•&nbsp;<code>?192 rock</code> — stations with "rock" in the name and 192+ kbps.
-	RU	Поиск осуществляется по разным полям с помощью префиксов — комбинируйте в любом порядке через пробел:<br>&nbsp;&nbsp;•&nbsp;текст без префикса — поиск по названию станции;<br>&nbsp;&nbsp;•&nbsp;# — поиск по жанру;<br>&nbsp;&nbsp;•&nbsp;@ — <a href="https://ru.wikipedia.org/wiki/ISO_3166-1" target="_blank">код страны (ISO)</a>;<br>&nbsp;&nbsp;•&nbsp;? — минимальный битрейт (кбит/с).<br>Примеры:<br>&nbsp;&nbsp;•&nbsp;<code>#chill @th ?256</code> — chill-станции из Таиланда от 256 кбит/с;<br>&nbsp;&nbsp;•&nbsp;<code>?192 rock</code> — станции с «rock» в названии от 192 кбит/с.
-
-RR_INFO_NAME
-	EN	Name
-	RU	Имя
+	EN	Search by name, tag, country, bitrate, and codec using prefixes — combine in any order, separated by spaces:<br>&nbsp;&nbsp;•&nbsp;plain text — searches station name;<br>&nbsp;&nbsp;•&nbsp;# — tag (genre);<br>&nbsp;&nbsp;•&nbsp;@ — <a href="https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes" target="_blank">ISO country code</a>;<br>&nbsp;&nbsp;•&nbsp;? — minimum bitrate (kbps);<br>&nbsp;&nbsp;•&nbsp;! — audio codec (aac, mp3, aac+, ogg, flac*). <br>*Most lossless streams in the Radio Browser <a href="https://www.radio-browser.info/codecs" target="_blank">catalog</a> are stored under the Ogg codec.<br><br>Examples:<br>&nbsp;&nbsp;•&nbsp;<code>#jazz !aac+</code> — AAC+ jazz stations;<br>&nbsp;&nbsp;•&nbsp;<code>#chill @th ?256</code> — chill stations from Thailand with 256+ kbps*;<br>&nbsp;&nbsp;•&nbsp;<code>?192 rock</code> — stations with "rock" in the name and 192+ kbps*.<br>*Some stations in the database are missing bitrate information and will be excluded if the "?" filter is used.
+	RU	Поиск осуществляется по разным полям с помощью префиксов — комбинируйте в любом порядке через пробел:<br>&nbsp;&nbsp;•&nbsp;текст без префикса — поиск по названию станции;<br>&nbsp;&nbsp;•&nbsp;# — тег (жанр);<br>&nbsp;&nbsp;•&nbsp;@ — <a href="https://ru.wikipedia.org/wiki/ISO_3166-1" target="_blank">код страны (ISO)</a>;<br>&nbsp;&nbsp;•&nbsp;? — минимальный битрейт (кбит/с);<br>&nbsp;&nbsp;•&nbsp;! — аудиокодек (aac, mp3, aac+, ogg, flac*). <br>*Большинство lossless-потоков в <a href="https://www.radio-browser.info/codecs" target="_blank">каталоге</a> Radio Browser хранятся под кодеком Ogg.<br><br>Примеры:<br>&nbsp;&nbsp;•&nbsp;<code>#jazz !aac+</code> — джазовые станции в формате AAC+;<br>&nbsp;&nbsp;•&nbsp;<code>#chill @th ?256</code> — chill-станции из Таиланда от 256 кбит/с*;<br>&nbsp;&nbsp;•&nbsp;<code>?192 rock</code> — станции с «rock» в названии от 192 кбит/с*.<br>*У части станций в каталоге не указан битрейт, поэтому они не попадут в результаты при использовании фильтра ?.
 
 RR_INFO_GENRE
 	EN	Genre
@@ -157,3 +165,63 @@ RR_INFO_COUNTRY
 RR_INFO_HOMEPAGE
 	EN	Website
 	RU	Веб-сайт
+	
+RR_IMPORT_READ_ERROR
+	EN	Could not read the file.
+	RU	Не удалось прочитать файл.
+
+RR_EXPORT_BTN
+	EN	Export
+	RU	Экспорт
+
+RR_IMPORT_BTN
+	EN	Import
+	RU	Импорт
+
+RR_IMPORT_RESULT
+	EN	Added: %1, skipped duplicates: %2, rejected invalid: %3.
+	RU	Добавлено: %1, пропущено дубликатов: %2, отклонено невалидных: %3.
+	
+RR_IMPORT_SKIPPED_LOCAL
+	EN	%1 local file(s) skipped (not supported).
+	RU	Пропущено локальных файлов: %1.
+
+RR_IMPORT_PARSE_ERROR
+	EN	Could not read this file — check that it's a valid export
+	RU	Не удалось прочитать файл — проверьте, что это корректный экспорт
+
+RR_EXPORT_DONE
+	EN	Exporting file...
+	RU	Экспорт файла...
+	
+RR_ADD_SUCCESS
+	EN	Station successfully added.
+	RU	Станция успешно добавлена.
+
+RR_ICON_REFRESH_STARTED
+	EN	Refreshing failed logos...
+	RU	Обновление проблемных лого...
+
+RR_BITRATE_REFRESH_STARTED
+	EN	Updating codec and bitrate for stations with unknown data...
+	RU	Обновление кодека и битрейта для станций с неизвестными данными...
+	
+RR_IMPORT_SKIPPED_LIMIT
+	EN	%1 station(s) skipped — import limit is 100 per file.
+	RU	Пропущено из-за лимита: %1 (максимум 100 станций за один импорт).
+	
+RR_IMPORT_EXPORT_DESC
+	EN	JSON: Full backup or export from <a href="https://www.radio-browser.info" target="_blank" rel="noopener">Radio Browser</a> (file or URL).<br>M3U: Playlists and link lists (file or URL). Metadata is detected automatically right after import.
+	RU	JSON: Полная копия или экспорт с <a href="https://www.radio-browser.info" target="_blank" rel="noopener">Radio Browser</a> (файл или URL).<br>M3U: Плейлисты и списки ссылок (файл или URL). Метаданные определятся автоматически сразу после импорта.
+	
+RR_CLEAR_ALL_BTN
+	EN	Clear all stations
+	RU	Очистить список станций
+
+RR_CLEAR_ALL_CONFIRM
+	EN	All stations from your list will be removed: %1. This cannot be undone unless you have a JSON backup. Continue?
+	RU	Все станции из вашего списка будут удалены: %1. Действие необратимо при отсутствии резервной копии (JSON). Продолжить?
+	
+RR_CLEAR_ALL_DONE
+	EN	Removing all stations...
+	RU	Удаление всех станций...

@@ -77,7 +77,14 @@ sub handler {
 			$needs_cache_update = 1;
 			$force_logo_rescan = 1;
 		}
-		
+	# Расчёт битрейта для ААС и неигранных МР3 (добавленных вручную)
+	if ($params->{measure_unknown_bitrates}) {
+		my $n = Plugins::RadioStationList::Plugin::measure_all_unknown_bitrates();
+		$params->{bitrate_probe_queued} = $n;
+	}
+	
+	$params->{bitrate_probes_pending} = Plugins::RadioStationList::Plugin::bitrate_probes_pending();	
+	
 	# 3. Лимит поиска
 	if (defined $params->{search_limit}) {
 		my $new_limit = int($params->{search_limit}) || 100;
@@ -90,7 +97,35 @@ sub handler {
 	# 4. Обработка списка станций (смарт-дифф, GC)
 	my $stations_changed = $class->_handle_stations_update($params, $logo_dir);
 	$needs_cache_update ||= $stations_changed;
+	
+	# --- ИМПОРТ СТАНЦИЙ ИЗ БЭКАПА ---
+	$params->{import_result_skipped_limit} = 0;
+	$params->{import_result_added}         = 0;
+	$params->{import_result_duplicate}     = 0;
+	$params->{import_result_invalid}       = 0;
+	$params->{import_result_skipped_local} = 0;
+	$params->{import_parse_error}          = 0;
 
+	if ($params->{import_stations_json}) {
+		my $result = Plugins::RadioStationList::Plugin::import_stations_from_json($params->{import_stations_json});
+		$params->{import_result_added}     = $result->{added};
+		$params->{import_result_duplicate} = $result->{duplicate};
+		$params->{import_result_invalid}   = $result->{invalid};
+		$params->{import_result_skipped_limit} = $result->{skipped_limit} || 0;
+		$params->{import_parse_error}      = $result->{parse_error} ? 1 : 0;
+		$needs_cache_update = 1;
+	}
+
+	if ($params->{import_stations_m3u}) {
+		my $result = Plugins::RadioStationList::Plugin::import_stations_from_m3u($params->{import_stations_m3u});
+		$params->{import_result_added}         = $result->{added};
+		$params->{import_result_duplicate}     = $result->{duplicate};
+		$params->{import_result_invalid}       = $result->{invalid};
+		$params->{import_result_skipped_local} = $result->{skipped_local} || 0;
+		$params->{import_result_skipped_limit} = $result->{skipped_limit} || 0;
+		$params->{import_parse_error}          = $result->{parse_error} ? 1 : 0;
+		$needs_cache_update = 1;
+	}
 	# ПОДГОТОВКА ДАННЫХ ДЛЯ ШАБЛОНА
 	# СИНХРОННАЯ ПРОВЕРКА ЛОКАЛЬНЫХ ПАПОК: 
 	# Чтобы интерфейс обновлялся мгновенно по кнопке Сохранить, перекладываем файлы до рендера.
@@ -123,6 +158,8 @@ sub handler {
 	$params->{pref_use_icon_proxy} = $prefs->get('use_icon_proxy') // 0;
 	
 	$params->{pref_allow_webp_playlist} = $prefs->get('allow_webp_playlist') // 0;
+	
+	$params->{bitrate_probes_pending} = Plugins::RadioStationList::Plugin::bitrate_probes_pending();
 	
 	return $class->SUPER::handler($client, $params);
 }
@@ -355,11 +392,16 @@ sub _handle_stations_update {
 			my %live_meta;
 			for my $old (@$old_stations_ref) {
 				my $u = $old->{url} // '';
-				$live_meta{$u} = { b => $old->{bitrate}, c => $old->{codec} } if $u;
+				next unless $u;
+				$live_meta{$u} = {
+					b => $old->{bitrate},
+					c => $old->{codec},
+					n => $old->{name},
+					t => $old->{tags},
+					h => $old->{homepage},
+				};
 			}
-			
-			# Вычищаем временные UI-флаги и переносим актуальные bitrate/codec,
-			# которые плеер мог обновить в фоне после загрузки страницы браузером
+
 			for my $st (@$stations) { 
 				delete $st->{display_icon}; 
 				delete $st->{icon_state};
@@ -368,9 +410,43 @@ sub _handle_stations_update {
 
 				my $u = $st->{url} // '';
 				if ($u && $live_meta{$u}) {
-					$st->{bitrate} = $live_meta{$u}{b} if $live_meta{$u}{b};
-					$st->{codec}   = $live_meta{$u}{c} if $live_meta{$u}{c};
+					my $lm = $live_meta{$u};
+
+					# Битрейт/кодек/homepage — полей для ручного редактирования в UI нет,
+					# безопасно всегда предпочитать то, что сервер узнал в фоне.
+					$st->{bitrate}  = $lm->{b} if $lm->{b};
+					$st->{codec}    = $lm->{c} if $lm->{c};
+					$st->{homepage} = $lm->{h} if $lm->{h};
+
+					# Имя/теги пользователь МОЖЕТ редактировать вручную — подменяем только
+					# если то, что прислал браузер, всё ещё похоже на плейсхолдер (пусто
+					# или совпадает с самим URL — как в _apply_icy_metadata), иначе рискуем
+					# затереть только что введённую пользователем правку.
+					if ($lm->{n} && (($st->{name} // '') eq '' || ($st->{name} // '') eq $u)) {
+						$st->{name} = $lm->{n};
+					}
+					
+					my $ICY_TAGS_GRACE = 8; # секунд — с запасом на 2-3 цикла поллинга
+					my $applied_at = $Plugins::RadioStationList::Plugin::icy_tags_applied_at{$u} || 0;
+					if ($lm->{t} && (($st->{tags} // '') eq '') && (time() - $applied_at) < $ICY_TAGS_GRACE) {
+						$st->{tags} = $lm->{t};
+					}
 				}
+			}
+			
+			# --- АВТОПРОБА БИТРЕЙТА ДЛЯ НОВЫХ СТАНЦИЙ ---
+			# В веб-форме нет поля для ручного ввода битрейта, поэтому у только что
+			# добавленной на этой странице станции он всегда 0 — используем это как сигнал,
+			# что можно (и нужно) попробовать измерить его так же, как для добавленных
+			# через Radio Browser (см. _addStationToPrefs).
+			my %old_urls_set = map { ($_->{url} // '') => 1 } grep { $_->{url} } @$old_stations_ref;
+			for my $st (@$stations) {
+				my $u = $st->{url} // '';
+				next unless $u;
+				next if $old_urls_set{$u};   # уже существовала — не трогаем
+				next if $st->{bitrate};      # уже есть значение (перенесено из live_meta выше)
+				next unless Plugins::RadioStationList::Plugin::_bitrate_probe_supported({ url => $u, codec => $st->{codec} });
+				Plugins::RadioStationList::Plugin::_enqueue_bitrate_probe($u);
 			}
 
 			# Сохраняем новый список в преференсы и принудительно сбрасываем на диск

@@ -96,16 +96,25 @@
 
 /* Emphasis buttons ("Add", "Retry") - default: обычный вид, как у .rr-btn.
    Акцент-цвет и pill-форма - только для Material, см. правило ниже. */
-.rr-btn-add, .rr-btn-retry { 
-    font-weight: bold; 
+.rr-btn-add, .rr-btn-retry, .rr-btn-bitrate,
+.rr-btn-export-json, .rr-btn-import-json,
+.rr-btn-export-m3u, .rr-btn-import-m3u, .rr-btn-clear-all {
+    font-weight: bold;
 }
 
-/* Material-only: определяется в JS по URL пути iframe'а (window.location.pathname 
-   содержит /material/), см. rrInitSkin() в конце <script> */
-body.rr-skin-material .rr-btn-add, body.rr-skin-material .rr-btn-retry {
-    color: var(--accent-color, #5275a1);
-    border-color: var(--accent-color, #5275a1);
+/* Material-only: определяется в JS по URL пути iframe'а (window.location.pathname содержит /material/), см. rrInitSkin() в конце script */
+body.rr-skin-material .rr-btn-add,
+body.rr-skin-material .rr-btn-retry,
+body.rr-skin-material .rr-btn-bitrate,
+body.rr-skin-material .rr-btn-export-json,
+body.rr-skin-material .rr-btn-import-json,
+body.rr-skin-material .rr-btn-export-m3u,
+body.rr-skin-material .rr-btn-import-m3u,
+body.rr-skin-material .rr-btn-clear-all {
+    color: var(--active-color, #3277cf);
+    border-color: var(--active-color, #3277cf);
     border-radius: 100px;
+	border-width: 1px !important;
 }
 
 /* -----------------------------------------
@@ -114,8 +123,8 @@ body.rr-skin-material .rr-btn-add, body.rr-skin-material .rr-btn-retry {
    ----------------------------------------- */
 @media (hover: hover) and (pointer: fine) {
     .rr-btn:hover { 
-        color: var(--accent-color, #5275a1); 
-        border-color: var(--accent-color, #5275a1); 
+        color: var(--active-color, #3277cf); 
+        border-color: var(--active-color, #3277cf); 
     }
     .rr-btn-del:hover { 
         color: #dc3545!important;
@@ -130,8 +139,8 @@ body.rr-skin-material .rr-btn-add, body.rr-skin-material .rr-btn-retry {
    pointerup/pointercancel, regardless of where it occurred.
    ----------------------------------------- */
 .rr-btn.rr-pressed {
-    color: var(--accent-color, #5275a1) !important;
-    border-color: var(--accent-color, #5275a1) !important;
+    color: var(--active-color, #3277cf) !important;
+    border-color: var(--active-color, #3277cf) !important;
 }
 .rr-btn-del.rr-pressed {
     color: #dc3545 !important; 
@@ -171,21 +180,42 @@ body.rr-skin-material .rr-btn-add, body.rr-skin-material .rr-btn-retry {
 	transition: border-bottom-color 0.2s;
 	color: var(--text-color, inherit);
 }
-.rr-input-field:focus { border-bottom-color: var(--accent-color, #5275a1); outline: none; }
+.rr-input-field:focus { border-bottom-color: var(--active-color, #3277cf); outline: none; }
 .rr-input-field:focus::placeholder { color: transparent; }
 
 /* Drag and Drop */
 .rr-table td:nth-child(1) { cursor: move; }
 .rr-table td:nth-child(1) span { pointer-events: none; }
 .rr-table tr.rr-dragging { opacity: 0.4; background: var(--list-hover-color, rgba(128,128,128,0.1)); }
-/*.rr-drag-over { border-top: 2px solid var(--accent-color, #5275a1) !important; }*/
-/*.rr-drag-over-bottom { border-bottom: 2px solid var(--accent-color, #5275a1) !important; }*/
+/*.rr-drag-over { border-top: 2px solid var(--active-color, #3277cf) !important; }*/
+/*.rr-drag-over-bottom { border-bottom: 2px solid var(--active-color, #3277cf) !important; }*/
 
-tr.rr-drag-over td { border-top: 2px solid var(--accent-color, #5275a1) !important; }
-tr.rr-drag-over-bottom td { border-bottom: 2px solid var(--accent-color, #5275a1) !important; }
+tr.rr-drag-over td { border-top: 2px solid var(--active-color, #3277cf) !important; }
+tr.rr-drag-over-bottom td { border-bottom: 2px solid var(--active-color, #3277cf) !important; }
 
 /* Err & Ico */
-.rr-error { color: #f88; padding: 8px; margin-bottom: 1em; background: rgba(255, 0, 0, 0.1); border-radius: 4px; display: none; border: 1px solid rgba(255, 0, 0, 0.2); position: sticky; top: 0; z-index: 10; }
+.rr-error {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    max-width: 90%;
+    padding: 10px 16px;
+    border-radius: 4px;
+    display: none;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    color: #fff;
+    background: rgba(200, 40, 40, 0.95);
+    border: 1px solid rgba(150, 40, 40, 0.15);
+}
+.rr-error.rr-error-neutral {
+    color: var(--text-color, inherit);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    background: var(--background-color, #2b2b2b);
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
+}
 .rr-thumb { 
     width: 32px;
     height: 32px;
@@ -214,11 +244,28 @@ tr.rr-drag-over-bottom td { border-bottom: 2px solid var(--accent-color, #5275a1
 <div id="rr-error" class="rr-error"></div>
 
 <input type="hidden" id="rr-stations-raw" value="[% stations_json | html %]">
+<input type="hidden" id="rr-bitrate-pending" value="[% bitrate_probes_pending %]">
+<input type="hidden" id="rr-import-result" value="[% import_result_added %]|[% import_result_duplicate %]|[% import_result_invalid %]|[% import_result_skipped_local %]|[% import_result_skipped_limit %]">
+<input type="hidden" id="rr-import-parse-error" value="[% import_parse_error %]">
+
+
 <span id="rr-i18n-data" style="display:none"
-    data-err-fill="[% 'EMPTY_FIELD' | string | html %]"
+	data-err-no-url="[% 'RR_ERROR_NO_URL' | string | html %]"
+    data-err-no-name="[% 'RR_ERROR_NO_NAME' | string | html %]"
     data-empty="[% 'RR_EMPTY' | string | html %]"
     data-err-url="[% 'RR_ERROR_URL' | string | html %]"
     data-already-added="[% 'RR_ALREADY_ADDED' | string | html %]"
+	data-import-read-error="[% 'RR_IMPORT_READ_ERROR' | string | html %]"
+	data-import-result="[% 'RR_IMPORT_RESULT' | string | html %]"
+	data-import-parse-error="[% 'RR_IMPORT_PARSE_ERROR' | string | html %]"
+	data-export-done="[% 'RR_EXPORT_DONE' | string | html %]"
+	data-add-success="[% 'RR_ADD_SUCCESS' | string | html %]"
+	data-icon-refresh-started="[% 'RR_ICON_REFRESH_STARTED' | string | html %]"
+	data-bitrate-refresh-started="[% 'RR_BITRATE_REFRESH_STARTED' | string | html %]"
+	data-import-skipped-local="[% 'RR_IMPORT_SKIPPED_LOCAL' | string | html %]"
+	data-import-skipped-limit="[% 'RR_IMPORT_SKIPPED_LIMIT' | string | html %]"
+	data-clear-all-confirm="[% 'RR_CLEAR_ALL_CONFIRM' | string | html %]"
+	data-clear-all-done="[% 'RR_CLEAR_ALL_DONE' | string | html %]"
 ></span>
 
 <div class="rr-table-container">
@@ -247,17 +294,17 @@ tr.rr-drag-over-bottom td { border-bottom: 2px solid var(--accent-color, #5275a1
 						[% END %]
 
 						[% IF station.icon_state == 'FETCH_FAILED_TEMP' || station.icon_state == 'PENDING_DOWNLOAD' || station.icon_unsupported %]
-							<span class="rr-badge" style="cursor: move; color: var(--accent-color, currentColor);">
+							<span class="rr-badge" style="cursor: move; color: var(--active-color, currentColor);">
 								<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 2L14 13H2L8 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><text x="8" y="12" text-anchor="middle" font-size="7" font-weight="bold" fill="currentColor">!</text></svg>
 							</span>
 						[% ELSIF station.icon_state == 'HAS_CACHE' && station.icon_source == 'local' %]
-							<span class="rr-badge" title="Local folder logo" style="cursor: move; color: var(--accent-color, currentColor);">
+							<span class="rr-badge" title="Local folder logo" style="cursor: move; color: var(--active-color, currentColor);">
 								<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5h5l1.5 2H15v7H1V5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
 							</span>
 						[% END %]
 						</span>
 					</td>
-					<td>[% station.name | html %]</td>
+					<td class="rr-td-name">[% station.name | html %]</td>
 					<td class="rr-td-url">[% station.url | html %]</td>
 					<td class="rr-td-codec">[% station.codec ? station.codec : '&mdash;' %]</td>
 					<td class="rr-td-bitrate">[% station.bitrate ? station.bitrate _ ' kbps' : '&mdash;' %]</td>
@@ -280,7 +327,7 @@ tr.rr-drag-over-bottom td { border-bottom: 2px solid var(--accent-color, #5275a1
     <h3 style="margin-top:0; margin-bottom:4px; font-size:var(--std-font-size);">[% "RR_ADD_STATION" | string %]</h3>
     <div style="display: grid; grid-template-columns: calc(30% + 25px) 1fr; gap: 0 24px;">
         <div>
-            <label style="display: block; font-size: var(--small-font-size); ">[% "RR_NAME" | string %]</label>
+            <label style="display: block; font-size: var(--small-font-size); ">[% "RR_NAME_ADD" | string %]</label>
             <input type="text" id="rr-new-name" class="rr-input-field" placeholder="My radio station" autocomplete="off" style="width:100%; box-sizing:border-box; margin-bottom: 12px;">
         </div>
         <div>
@@ -296,7 +343,7 @@ tr.rr-drag-over-bottom td { border-bottom: 2px solid var(--accent-color, #5275a1
             <input type="text" id="rr-new-icon" class="rr-input-field" placeholder="https://example.com/logo.png" autocomplete="off" style="width:100%; box-sizing:border-box; margin-bottom: 6px;">
         </div>
     </div>
-    <button class="rr-btn rr-btn-add" type="button" style="margin-top: 12px;" onclick="rrAdd()">[% "RR_ADD_BTN" | string %]</button>
+    <button class="rr-btn rr-btn-add" type="button" style="margin-top: 12px;" onclick="rrClearButtonFocus('.rr-btn-add'); rrAdd();">[% "RR_ADD_BTN" | string %]</button>
 </div>
 
 <div style="margin: 24px 0px;">
@@ -304,7 +351,7 @@ tr.rr-drag-over-bottom td { border-bottom: 2px solid var(--accent-color, #5275a1
 		[% "RR_CUSTOM_LOGO_DIR" | string %]
 	</label>
 	<input type="text" id="rr-custom-logo-dir" class="rr-input-field" value="[% custom_logo_dir | html %]" placeholder="[% 'RR_CUSTOM_LOGO_DIR_PLACEHOLDER' | string| html %]" onchange="rrSave()" autocomplete="off">
-	<div style="font-size: var(--small-font-size); opacity: 0.6; margin-top: 5px; line-height: 1.4;">
+	<div style="font-size: var(--small-font-size); opacity: 0.8; margin-top: 5px; line-height: 1.4;">
 		[% "RR_CUSTOM_LOGO_DIR_DESC" | string %] <code style="user-select: all; font-family: monospace; background: rgba(128, 128, 128, 0.15); padding: 2px 5px; border-radius: 3px; display: inline; word-break: break-all; margin-top: 4px;">[% default_logo_dir | html %]</code>
 	</div>
 </div>
@@ -323,7 +370,7 @@ tr.rr-drag-over-bottom td { border-bottom: 2px solid var(--accent-color, #5275a1
 		<input type="checkbox" name="pref_allow_webp_playlist" id="allow_webp_playlist" [% IF pref_allow_webp_playlist %]checked[% END %] onchange="rrSave()" style="width: 16px; height: 16px; margin: 0 8px 0 0; vertical-align: middle; cursor: pointer;">
 		[% "PLUGIN_RADIOSTATIONLIST_ALLOW_WEBP" | string %]
 	</label>
-	<div style="font-size: var(--small-font-size); opacity: 0.6; margin-top: 4px; line-height: 1.4;">
+	<div style="font-size: var(--small-font-size); opacity: 0.8; margin-top: 4px; line-height: 1.4;">
 		[% "PLUGIN_RADIOSTATIONLIST_ALLOW_WEBP_HINT" | string %]
 	</div>
 </div>
@@ -334,13 +381,18 @@ tr.rr-drag-over-bottom td { border-bottom: 2px solid var(--accent-color, #5275a1
         <input type="checkbox" name="pref_use_icon_proxy" id="use_icon_proxy" [% IF pref_use_icon_proxy %]checked[% END %] onchange="rrSave()" style="width: 16px; height: 16px; margin: 0 8px 0 0; vertical-align: middle; cursor: pointer;">
         [% "PLUGIN_RADIOSTATIONLIST_USE_ICON_PROXY" | string %]
     </label>
-    <div style="font-size: var(--small-font-size); opacity: 0.6; margin-top: 4px; line-height: 1.4;">
+    <div style="font-size: var(--small-font-size); opacity: 0.8; margin-top: 4px; line-height: 1.4;">
         [% "PLUGIN_RADIOSTATIONLIST_USE_ICON_PROXY_DESC" | string %]
     </div>
-    
-    <button type="button" class="rr-btn rr-btn-retry" style="margin-top: 14px; padding: 6px 14px;" onclick="rrResetErrors()">
-    &#8635; [% "RR_RETRY" | string %]
-	</button>
+    <!-- Блок кнопок с flex -->
+    <div class="rr-btn-group" style="display: flex; flex-wrap: wrap; gap: 16px 12px; margin: 24px 0;">
+        <button type="button" class="rr-btn rr-btn-retry" style="padding: 6px 14px;" onclick="rrResetErrors()">
+            [% "RR_RETRY" | string %]
+        </button>
+        <button type="button" class="rr-btn rr-btn-bitrate" style="padding: 6px 14px;" onclick="rrMeasureBitrate();">
+            [% "RR_MEASURE_BITRATE_HINT" | string %]
+        </button>
+    </div>
 </div>
 <!-- Search limit -->
 <div style="margin: 24px 0px;">
@@ -355,16 +407,40 @@ tr.rr-drag-over-bottom td { border-bottom: 2px solid var(--accent-color, #5275a1
         <option value="200" [% IF search_limit == 200 %]selected[% END %]>200</option>
 		<option value="250" [% IF search_limit == 250 %]selected[% END %]>250</option>
     </select>
-    <div style="font-size: var(--small-font-size); opacity: 0.6; margin-top: 4px; line-height: 1.4; text-align: left;">
+    <div style="font-size: var(--small-font-size); opacity: 0.8; margin-top: 4px; line-height: 1.4; text-align: left;">
         [% "RR_SEARCH_LIMIT_DESC" | string %]
     </div>
 </div>
-<!-- Final hints block -->
-<div class="statusMessage" style="line-height: 1.5; font-size: var(--std-font-size); margin: 24px 0px;">
-	<strong style="opacity: 0.6; font-weight: var(--bold-weight); color: var(--text-color, inherit);">[% "RR_SEARCH_TIPS_TITLE" | string %]</strong><br>
-	<span style="opacity: 0.6; color: var(--text-color, inherit);">[% "RR_SEARCH_TIPS_BODY" | string %]</span>
+<!-- Блок кнопок экспорта/импорта -->
+<div class="rr-btn-group" style="display: flex; flex-wrap: wrap; gap: 16px 12px; margin: 24px 0;">
+    <button type="button" class="rr-btn rr-btn-export-json" style="min-width: 140px; padding: 6px 14px;" onclick="rrClearButtonFocus('.rr-btn-export-json'); rrExportJson();">
+        [% "RR_EXPORT_BTN" | string %] (JSON)
+    </button>
+    <input type="file" id="rr-import-file" accept="application/json" style="display:none" onchange="rrImportJson(this)">
+    <button type="button" class="rr-btn rr-btn-import-json" style="min-width: 140px; padding: 6px 14px;" onclick="rrClearButtonFocus('.rr-btn-import-json'); document.getElementById('rr-import-file').click();">
+        [% "RR_IMPORT_BTN" | string %] (JSON)
+    </button>
+    
+    <button type="button" class="rr-btn rr-btn-export-m3u" style="min-width: 140px; padding: 6px 14px;" onclick="rrClearButtonFocus('.rr-btn-export-m3u'); rrExportM3u();">
+        [% "RR_EXPORT_BTN" | string %] (M3U)
+    </button>
+    <input type="file" id="rr-import-m3u-file" accept=".m3u,.m3u8" style="display:none" onchange="rrImportM3u(this)">
+    <button type="button" class="rr-btn rr-btn-import-m3u" style="min-width: 140px; padding: 6px 14px;" onclick="rrClearButtonFocus('.rr-btn-import-m3u'); document.getElementById('rr-import-m3u-file').click();">
+        [% "RR_IMPORT_BTN" | string %] (M3U)
+    </button>
+</div>
+<div style="font-size: var(--small-font-size); opacity: 0.8; margin-top: 8px; line-height: 1.4;">
+    [% "RR_IMPORT_EXPORT_DESC" | string %]
 </div>
 
+<div style="margin: 24px 0px;">
+    <button type="button" class="rr-btn rr-btn-del rr-btn-clear-all" style="padding: 6px 14px;" onclick="rrClearAll();">[% "RR_CLEAR_ALL_BTN" | string %]</button>
+</div>
+<!-- Final hints block -->
+<div class="statusMessage" style="line-height: 1.5; font-size: var(--std-font-size); margin: 24px 0px;">
+	<strong style="opacity: 0.8; font-weight: var(--bold-weight); color: var(--text-color, inherit);">[% "RR_SEARCH_TIPS_TITLE" | string %]</strong><br>
+	<span style="opacity: 0.8; color: var(--text-color, inherit);">[% "RR_SEARCH_TIPS_BODY" | string %]</span>
+</div>
 <script type="text/javascript">
 
 // Material грузит страницу настроек в iframe с путём вида /material/... —
@@ -405,7 +481,17 @@ document.addEventListener('touchstart', function() {}, { passive: true });
 })();
 
 document.addEventListener('DOMContentLoaded', function() {
-	if (rrStations.some(function(s) { return s.icon_state === 'PENDING_DOWNLOAD' || s.icon_state === 'FETCH_FAILED_TEMP'; })) {
+	var bitrateEl = document.getElementById('rr-bitrate-pending');
+	var bitratePending = bitrateEl ? (parseInt(bitrateEl.value, 10) || 0) : 0;
+	
+	var needsPoll = rrStations.some(function(s) { 
+		// ДОБАВЛЕНО: проверяем, ждем ли иконку или имя
+		var waitingForIcon = (s.icon_state === 'PENDING_DOWNLOAD' || s.icon_state === 'FETCH_FAILED_TEMP');
+		var waitingForName = (!s.name || s.name === s.url);
+		return waitingForIcon || waitingForName;
+	}) || bitratePending > 0;
+
+	if (needsPoll) {
 		setTimeout(function() { rrSave(); }, 2000);
 	}
 });
@@ -413,6 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function rrForceRepaint(btn) {
 	if (!btn) return;
 	var clone = btn.cloneNode(true);
+	clone.classList.remove('rr-pressed'); // клон никогда не должен утащить "нажатое" состояние с исходного узла
 	btn.replaceWith(clone);
 }
 
@@ -433,10 +520,22 @@ try {
 
 var rrI18n = document.getElementById('rr-i18n-data');
 var RR_STRINGS = {
-	errFill: rrI18n ? rrI18n.dataset.errFill : '',
+	errNoUrl: rrI18n ? rrI18n.dataset.errNoUrl : '',
+	errNoName: rrI18n ? rrI18n.dataset.errNoName : '',
 	empty: rrI18n ? rrI18n.dataset.empty : '',
 	errUrl: rrI18n ? rrI18n.dataset.errUrl : '',
-	alreadyAdded: rrI18n ? rrI18n.dataset.alreadyAdded : ''
+	alreadyAdded: rrI18n ? rrI18n.dataset.alreadyAdded : '',
+	importReadError: rrI18n ? rrI18n.dataset.importReadError : '',
+	importResult: rrI18n ? rrI18n.dataset.importResult : '',
+	importParseError: rrI18n ? rrI18n.dataset.importParseError : '',
+	exportDone: rrI18n ? rrI18n.dataset.exportDone : '',
+	addSuccess: rrI18n ? rrI18n.dataset.addSuccess : '',
+	iconRefreshStarted: rrI18n ? rrI18n.dataset.iconRefreshStarted : '',
+	bitrateRefreshStarted: rrI18n ? rrI18n.dataset.bitrateRefreshStarted : '',
+	importSkippedLocal: rrI18n ? rrI18n.dataset.importSkippedLocal : '',
+	importSkippedLimit: rrI18n ? rrI18n.dataset.importSkippedLimit : '',
+	clearAllConfirm: rrI18n ? rrI18n.dataset.clearAllConfirm : '',
+	clearAllDone: rrI18n ? rrI18n.dataset.clearAllDone : ''
 };
 
 // Image error handler that remembers status to prevent flickering during redraws.
@@ -578,11 +677,11 @@ function rrIconDisplayFor(st) {
 
 	var badgeHtml = '';
 	if (isPending ) {
-		badgeHtml = '<span class="rr-badge" style="color: var(--accent-color, currentColor);">' +
+		badgeHtml = '<span class="rr-badge" style="color: var(--active-color, currentColor);">' +
 			'<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 2L14 13H2L8 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><text x="8" y="12" text-anchor="middle" font-size="7" font-weight="bold" fill="currentColor">!</text></svg>' +
 			'</span>';
 	} else if (isLocal) {
-		badgeHtml = '<span class="rr-badge" title="Local folder logo" style="color: var(--accent-color, currentColor);">' +
+		badgeHtml = '<span class="rr-badge" title="Local folder logo" style="color: var(--active-color, currentColor);">' +
 			'<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5h5l1.5 2H15v7H1V5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
 			'</span>';
 	}
@@ -665,7 +764,7 @@ function rrRender() {
 				+ '</span>'
 				+ '</td>'
 				//Other Columns
-				+ '<td>' + escapeHtml(st.name) + '</td>'
+				+ '<td class="rr-td-name">' + escapeHtml(st.name) + '</td>'
 				+ '<td class="rr-td-url">' + escapeHtml(st.url) + '</td>'
 				+ '<td class="rr-td-codec">' + (escapeHtml(st.codec) || '&#8212;') + '</td>'
 				+ '<td class="rr-td-bitrate">' + (st.bitrate ? st.bitrate + ' kbps' : '&#8212;') + '</td>'
@@ -688,19 +787,16 @@ function rrPatchRows(newStations) {
 	if (!tbody) return false;
 	var rows = tbody.children;
 	if (rows.length !== newStations.length) return false;
-
 	for (var i = 0; i < newStations.length; i++) {
 		var st  = newStations[i];
 		var row = rows[i];
 		var img = row.querySelector('img.rr-thumb');
 		if (!img) return false;
-
 		var disp = rrIconDisplayFor(st);
 		var absoluteNew = new URL(disp.iconPath, location.href).href;
 		if (img.src !== absoluteNew) {
 			img.src = disp.iconPath;
 		}
-
 		var cell = img.parentNode;
 		var existingBadge = cell.querySelector('.rr-badge');
 		var wantsBadge = disp.badgeHtml !== '';
@@ -711,6 +807,32 @@ function rrPatchRows(newStations) {
 			}
 		} else if (existingBadge) {
 			existingBadge.parentNode.removeChild(existingBadge);
+		}
+		// ИМЯ СТАНЦИИ — обновляем ячейку имени на лету, когда бэкенд подтянул ICY-name
+		var nameCell = row.querySelector('.rr-td-name');
+		if (nameCell) {
+			var newName = st.name || '';
+			if (nameCell.textContent !== newName) {
+				nameCell.textContent = newName;
+			}
+		}
+		// Codec / bitrate — есть только в обычном режиме строки;
+		// у редактируемой строки (colspan=4) этих ячеек нет — querySelector
+		// вернёт null, и патч для этой строки просто пропускается, без ошибки.
+		var codecCell = row.querySelector('.rr-td-codec');
+		if (codecCell) {
+			var newCodec = st.codec || '\u2014';
+			if (codecCell.textContent !== newCodec) {
+				codecCell.textContent = newCodec;
+			}
+		}
+
+		var bitrateCell = row.querySelector('.rr-td-bitrate');
+		if (bitrateCell) {
+			var newBitrate = st.bitrate ? (st.bitrate + ' kbps') : '\u2014';
+			if (bitrateCell.textContent !== newBitrate) {
+				bitrateCell.textContent = newBitrate;
+			}
 		}
 	}
 	return true;
@@ -778,6 +900,24 @@ function rrSyncEditingInput() {
 	}
 }
 
+var rrNoticeTimer = null;
+
+function rrShowNotice(text, isError) {
+	var err = document.getElementById('rr-error');
+	if (rrNoticeTimer) {
+		clearTimeout(rrNoticeTimer);
+		rrNoticeTimer = null;
+	}
+	err.textContent = text;
+	err.classList.toggle('rr-error-neutral', !isError);
+	err.style.display = 'block';
+	rrNoticeTimer = setTimeout(function() {
+		err.style.display = 'none';
+		err.classList.remove('rr-error-neutral');
+		rrNoticeTimer = null;
+	}, 3000);
+}
+
 function rrSaveEdit(i) {
 	if (document.activeElement) document.activeElement.blur();
 	rrClearPressedButtons();
@@ -787,19 +927,18 @@ function rrSaveEdit(i) {
 	var m = document.getElementById('rr-edit-meta').value.trim(); 
 	var err = document.getElementById('rr-error');
 
-	if (!n || !u) {
-		err.textContent = RR_STRINGS.errFill;
-		err.style.display = 'block';
-		setTimeout(function() { err.style.display = 'none'; }, 4000);
+	if (!n) {
+		rrShowNotice(RR_STRINGS.errNoName, true);
+		return;
+	}
+	if (!u) {
+		rrShowNotice(RR_STRINGS.errNoUrl, true);
 		return;
 	}
 	if (!rrIsValidStreamUrl(u)) {
-		err.textContent = RR_STRINGS.errUrl;
-		err.style.display = 'block';
-		setTimeout(function() { err.style.display = 'none'; }, 4000);
+		rrShowNotice(RR_STRINGS.errUrl, true);
 		return;
 	}
-	
 	// DUPLICATE CHECK DURING EDITING
     var isDuplicate = rrStations.some(function(s, idx) {
         // Check all stations EXCEPT the one currently being edited (idx !== i)
@@ -807,16 +946,12 @@ function rrSaveEdit(i) {
     });
 
     if (isDuplicate) {
-        err.textContent = RR_STRINGS.alreadyAdded;
-        err.style.display = 'block';
-        setTimeout(function() { err.style.display = 'none'; }, 4000);
+        rrShowNotice(RR_STRINGS.alreadyAdded, true);
         return;
     }
 	
 	if (ic && !rrIsValidStreamUrl(ic)) {
-    err.textContent = RR_STRINGS.errUrl;
-    err.style.display = 'block';
-    setTimeout(function() { err.style.display = 'none'; }, 4000);
+    rrShowNotice(RR_STRINGS.errUrl, true);
     return;
 	}
 
@@ -876,49 +1011,31 @@ function rrDel(i) {
 	rrSave();
 }
 
+var rrResetErrorsRequested = false;
+var rrExpectingImportResult = false;
+
 function rrResetErrors() {
-	setTimeout(function() { 
-        if (document.activeElement) document.activeElement.blur();
-        rrForceRepaint(document.querySelector('.rr-btn-retry'));
-    }, 150);
-	
+	rrClearButtonFocus('.rr-btn-retry');
+	if (!rrStations.length) return;
 	// VISUAL RESET (Empty square without logos)
 	var needsRender = false;
 	for (var i = 0; i < rrStations.length; i++) {
 		var st = rrStations[i];
-		// Reset both permanent and temporary errors
 		if (st.icon_state === 'FETCH_FAILED_PERM' || st.icon_state === 'FETCH_FAILED_TEMP' || st.icon_state === 'BROWSER_FAILED') {
 			st.icon_state = 'PENDING_DOWNLOAD';
-			st.display_icon = ''; // Completely clear the path, leaving default empty square
+			st.display_icon = '';
 			needsRender = true;
 		}
 	}
-	
-	// If stations with errors are found, instantly redraw UI
-	// so the user sees that icons have cleared and are in loading state
-	if (needsRender) {
-		rrRender();
-	}
+	if (needsRender) rrRender();
 
-	var body = new URLSearchParams();
-	body.append('reset_icon_errors', '1');
-	fetch(location.pathname, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-		body: body.toString()
-	}).then(function() {
-		// Start saving with polling. Since we set PENDING_DOWNLOAD,
-		// smart polling will tick every 2 seconds until backend resolves
-		// all timeouts (up to 180 seconds thanks to increased rrPollCount limit)
-		rrSave();
-	});
+	rrResetErrorsRequested = true;
+	rrShowNotice(RR_STRINGS.iconRefreshStarted, false);
+	rrSave();
 }
 
 function rrAdd() {
-	setTimeout(function() { 
-        if (document.activeElement) document.activeElement.blur();
-        rrForceRepaint(document.querySelector('.rr-btn-add'));
-    }, 150);
+	rrClearButtonFocus('.rr-btn-add');
 	rrSyncEditingInput();
 	var nameInp = document.getElementById('rr-new-name');
 	var urlInp  = document.getElementById('rr-new-url');
@@ -931,33 +1048,28 @@ function rrAdd() {
 	var icon = iconInp.value.trim();
 	var meta = metaInp.value.trim(); 
 
-	if (!name || !url) {
-		err.textContent = RR_STRINGS.errFill;
-		err.style.display = 'block';
-		setTimeout(function() { err.style.display = 'none'; }, 4000);
+	if (!url) {
+		rrShowNotice(RR_STRINGS.errNoUrl, true);
 		return;
 	}
+	if (!name) {
+		name = url; // подхватится автоматически: icy-name допишет реальное имя (см. ниже)
+	}
 	if (!rrIsValidStreamUrl(url)) {
-		err.textContent = RR_STRINGS.errUrl;
-		err.style.display = 'block';
-		setTimeout(function() { err.style.display = 'none'; }, 4000);
+		rrShowNotice(RR_STRINGS.errUrl, true);
 		return;
 	}
 	// Icon is optional, but if provided, it must be a valid URL
 	if (icon && !rrIsValidStreamUrl(icon)) {
-		err.textContent = RR_STRINGS.errUrl;
-		err.style.display = 'block';
-		setTimeout(function() { err.style.display = 'none'; }, 4000);
+		rrShowNotice(RR_STRINGS.errUrl, true);
 		return;
 	}
 	if (rrStations.some(function(s) { return (s.url || '').toLowerCase() === url.toLowerCase(); })) {
-		err.textContent = RR_STRINGS.alreadyAdded;
-		err.style.display = 'block';
-		setTimeout(function() { err.style.display = 'none'; }, 4000);
+		rrShowNotice(RR_STRINGS.alreadyAdded, true);
 		return;
 	}
 	err.style.display = 'none';
-	document.activeElement.blur();
+	if (document.activeElement) document.activeElement.blur();
 
 	// Distribute string across two different metadata fields
 	var metaParts = meta.split('|');
@@ -984,12 +1096,22 @@ function rrAdd() {
 
 	rrRender();
 	rrSave();
+	rrShowNotice(RR_STRINGS.addSuccess, false);
+}
+
+function rrClearButtonFocus(selector) {
+	setTimeout(function() {
+		if (document.activeElement) document.activeElement.blur();
+		rrForceRepaint(document.querySelector(selector));
+	}, 150);
 }
 
 var rrSaveId = 0;
 var rrSaveInFlight = false;
 var rrSaveQueued = false;
+var rrMeasureBitrateRequested = false;
 var rrPollCount = 0;
+var RR_MAX_NAME_POLLS = 3; // ~3 попытки × 2 сек ≈ 6 секунд на резолв имени для одной станции
 
 function rrSave() {
 	rrClearPressedButtons();
@@ -1009,7 +1131,7 @@ function rrSave() {
 	var clean = rrStations.map(function(s) {
 		var c = Object.assign({}, s);
 		delete c._editing;
-
+		delete c._nameAttempts; // чистим счетчик
 		return c;
 	});
 	body.append('stations_json', JSON.stringify(clean));
@@ -1038,7 +1160,26 @@ function rrSave() {
 	if (limitEl) {
 		body.append('search_limit', limitEl.value);
 	}
-
+	
+	if (rrResetErrorsRequested) {
+		rrResetErrorsRequested = false;
+		body.append('reset_icon_errors', 1);
+	}
+	// Принудительное измерение по кнопке — одноразово, флаг сбрасывается сразу
+    if (rrMeasureBitrateRequested) {
+        rrMeasureBitrateRequested = false;
+        body.append('measure_unknown_bitrates', 1);
+    }
+	// Импорт json
+	if (rrImportPayload !== null) {
+		body.append('import_stations_json', rrImportPayload);
+		rrImportPayload = null;
+	}
+	// Импорт m3u
+	if (rrImportM3uPayload !== null) {
+		body.append('import_stations_m3u', rrImportM3uPayload);
+		rrImportM3uPayload = null;
+	}
 	fetch(location.pathname, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1055,6 +1196,31 @@ function rrSave() {
 		var parser = new DOMParser();
 		var doc = parser.parseFromString(html, 'text/html');
 		var raw = doc.getElementById('rr-stations-raw');
+		// Читаем, сколько проб битрейта ещё в работе
+        var bitrateEl = doc.getElementById('rr-bitrate-pending');
+        var bitratePending = bitrateEl ? (parseInt(bitrateEl.value, 10) || 0) : 0;
+		
+		if (rrExpectingImportResult) {
+			rrExpectingImportResult = false;
+
+			var parseErrEl = doc.getElementById('rr-import-parse-error');
+			if (parseErrEl && parseErrEl.value === '1') {
+				rrShowNotice(RR_STRINGS.importParseError, true);
+			} else {
+				var importResultEl = doc.getElementById('rr-import-result');
+				var parts = importResultEl ? importResultEl.value.split('|').map(Number) : [0,0,0,0];
+				var added = parts[0] || 0, dup = parts[1] || 0, invalid = parts[2] || 0, skippedLocal = parts[3] || 0, skippedLimit = parts[4] || 0;
+				var msg = RR_STRINGS.importResult.replace('%1', added).replace('%2', dup).replace('%3', invalid);
+				if (skippedLocal > 0) {
+					msg += ' ' + RR_STRINGS.importSkippedLocal.replace('%1', skippedLocal);
+				}
+				if (skippedLimit > 0) {
+					msg += ' ' + RR_STRINGS.importSkippedLimit.replace('%1', skippedLimit);
+				}
+				rrShowNotice(msg, invalid > 0 && added === 0);
+			}
+		}
+		
 		if (raw) {
 			try {
 				var newStations = JSON.parse(raw.value || '[]');
@@ -1089,9 +1255,20 @@ function rrSave() {
 				}
 
 				var oldStations = rrStations; // before overwrite — for structure comparison (see rrPatchRows)
-				// editIdx === -1 is no longer required: rrPatchRows only touches <img>/badge
-				// in thumbnail cell and never affects inputs of editable row —
-				// so patching is possible during active input without losing focus/keyboard
+				
+				// editIdx === -1 is no longer required: rrPatchRows only touches <img>/badge/text
+				// and never affects inputs of editable row — so patching is possible
+				// during active input without losing focus/keyboard
+
+				// Индивидуальный счётчик попыток резолва имени (чтобы зависшая станция не блокировала другие)
+				newStations.forEach(function(s) {
+					var old = oldStations.find(function(o) { return o.url === s.url; });
+					s._nameAttempts = old ? (old._nameAttempts || 0) : 0;
+					if (!s.name || s.name === s.url) {
+						s._nameAttempts++;
+					}
+				});
+
 				var canPatch = oldStations.length === newStations.length &&
 					oldStations.every(function(s, idx) { return s.url === newStations[idx].url; });
 
@@ -1106,13 +1283,17 @@ function rrSave() {
 				// SMART POLLING: FETCH_FAILED_TEMP is also not "final", backend
 				// continues retrying it in background for up to an hour/until ban — need
 				// to wait for either HAS_CACHE or FETCH_FAILED_PERM.
+				// Также проверяем, не ждем ли мы ICY-имя (с лимитом попыток RR_MAX_NAME_POLLS).
 				var needsPoll = newStations.some(function(s) { 
-					return s.icon_state === 'PENDING_DOWNLOAD' || s.icon_state === 'FETCH_FAILED_TEMP';
-				});
+					var waitingForIcon = (s.icon_state === 'PENDING_DOWNLOAD' || s.icon_state === 'FETCH_FAILED_TEMP');
+					var waitingForName = (!s.name || s.name === s.url) && (s._nameAttempts < RR_MAX_NAME_POLLS);
+					return waitingForIcon || waitingForName;
+				}) || bitratePending > 0;
 
 				// Есть ли реальный прогресс с прошлого тика — если да, даём поллингу ещё времени
 				var progressed = oldStations.length === newStations.length &&
 					oldStations.some(function(s, idx) { return s.icon_state !== newStations[idx].icon_state; });
+					
 				// Row editing no blocks polling.
 				// Text transfer function above reliably protects active user input.
 				if (needsPoll) {
@@ -1138,6 +1319,100 @@ function rrSave() {
 		rrPollCount = 0;
 		console.error('RadioStationList save error:', e);
 	});
+}
+
+function rrMeasureBitrate() {
+	rrClearButtonFocus('.rr-btn-bitrate');
+	if (!rrStations.length) return;
+	rrMeasureBitrateRequested = true;
+	rrShowNotice(RR_STRINGS.bitrateRefreshStarted, false);
+	rrSave();
+}
+
+var rrImportPayload = null;
+
+function rrImportJson(input) {
+	var file = input.files && input.files[0];
+	input.value = '';
+	if (!file) return;
+	var reader = new FileReader();
+	reader.onload = function(e) {
+		rrImportPayload = e.target.result;
+		rrExpectingImportResult = true;
+		rrSave();
+	};
+	reader.onerror = function() { alert(RR_STRINGS.importReadError); };
+	reader.readAsText(file);
+}
+
+function rrExportJson() {
+	if (!rrStations.length) return;
+	var clean = rrStations.map(function(s) {
+		return {
+			name: s.name, url: s.url, icon: s.icon,
+			tags: s.tags, country: s.country, countrycode: s.countrycode,
+			bitrate: s.bitrate, codec: s.codec, homepage: s.homepage, uuid: s.uuid
+		};
+	});
+	var blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
+	var url = URL.createObjectURL(blob);
+	var a = document.createElement('a');
+	a.href = url;
+	a.download = 'radiostationlist-backup-' + new Date().toISOString().slice(0,10) + '.json';
+	document.body.appendChild(a);
+	a.click();
+	document.body.removeChild(a);
+	URL.revokeObjectURL(url);
+	rrShowNotice(RR_STRINGS.exportDone, false);
+}
+
+function rrExportM3u() {
+	if (!rrStations.length) return;
+	var lines = ['#EXTM3U'];
+	rrStations.forEach(function(s) {
+		var attrs = '';
+		if (s.icon) attrs += ' tvg-logo="' + s.icon.replace(/"/g, '') + '"';
+		if (s.tags) attrs += ' group-title="' + s.tags.replace(/"/g, '') + '"';
+		lines.push('#EXTINF:-1' + attrs + ',' + (s.name || '').replace(/[\r\n]/g, ' '));
+		lines.push(s.url);
+	});
+	var blob = new Blob([lines.join('\n') + '\n'], { type: 'audio/x-mpegurl' });
+	var url = URL.createObjectURL(blob);
+	var a = document.createElement('a');
+	a.href = url;
+	a.download = 'radiostationlist-' + new Date().toISOString().slice(0,10) + '.m3u';
+	document.body.appendChild(a);
+	a.click();
+	document.body.removeChild(a);
+	URL.revokeObjectURL(url);
+	rrShowNotice(RR_STRINGS.exportDone, false);
+}
+
+var rrImportM3uPayload = null;
+
+function rrImportM3u(input) {
+	var file = input.files && input.files[0];
+	input.value = '';
+	if (!file) return;
+	var reader = new FileReader();
+	reader.onload = function(e) {
+		rrImportM3uPayload = e.target.result;
+		rrExpectingImportResult = true;
+		rrSave();
+	};
+	reader.onerror = function() { alert(RR_STRINGS.importReadError); };
+	reader.readAsText(file);
+}
+
+function rrClearAll() {
+	rrClearButtonFocus('.rr-btn-clear-all');
+	var count = rrStations.length;
+	if (!count) return; // список и так пуст, нечего подтверждать
+	if (!confirm(RR_STRINGS.clearAllConfirm.replace('%1', count))) return;
+	rrStations = [];
+	rrRender();
+	rrSave();
+	rrShowNotice(RR_STRINGS.clearAllDone, false);
 }
 
 </script>

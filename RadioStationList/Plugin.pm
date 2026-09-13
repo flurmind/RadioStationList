@@ -20,6 +20,9 @@ use Slim::Control::Request;
 use Slim::Control::XMLBrowser;
 use Slim::Networking::SimpleAsyncHTTP;
 
+use HTTP::Request;
+use Slim::Networking::Async::HTTP;
+
 use Time::HiRes qw();
 use File::Spec;
 use File::Path qw(mkpath);
@@ -62,6 +65,33 @@ our %icon_retry_last_attempt;  # icon_url => время последнего с�
 our %custom_logo_active_urls;
 our $mirror_discovery_fail_count = 0;
 
+# --- Битрейт: очередь измерений (по кнопке, вручную) ---
+our @bitrate_probe_queue      = ();
+our %bitrate_probe_queued     = ();
+our %bitrate_probe_inflight   = ();
+our %bitrate_probe_started    = ();
+our $BITRATE_PROBE_CONCURRENCY = 2; # живые аудио-соединения, не иконки — держим низким
+our %last_processed_url;
+
+our %icy_tags_applied_at; #фиксируем момент, когда сервер сам заполнил жанр
+
+my @ADTS_SAMPLE_RATES = (96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350);
+my @MPEG1_L3_BITRATES  = (undef,32,40,48,56,64,80,96,112,128,160,192,224,256,320,undef);
+my @MPEG1_SAMPLERATES  = (44100,48000,32000,undef);
+my %CODEC_MAP = (
+    # короткие токены LMS (track->content_type при живом воспроизведении)
+    'aac' => 'AAC', 'mp4' => 'AAC', 'mp3' => 'MP3',
+    'ogg' => 'OGG', 'ops' => 'Opus', 'ogf' => 'FLAC', 'flc' => 'FLAC',
+    # сырые MIME (HTTP-заголовок при probe, ещё не нормализован LMS)
+    'audio/aacp'            => 'AAC+',
+    'audio/aac'             => 'AAC',
+    'audio/mpeg'            => 'MP3', 'audio/mp3' => 'MP3',
+    'audio/opus'            => 'Opus', 'audio/ogg;codecs=opus' => 'Opus',
+    'audio/ogg;codecs=flac' => 'FLAC',
+    'application/ogg'       => 'OGG', 'audio/ogg' => 'OGG',
+    'audio/flac'            => 'FLAC', 'audio/x-flac' => 'FLAC',
+);
+my $IMPORT_MAX_STATIONS = 100;
 my @icon_download_queue;           # FIFO буфер заданий на закачку иконок
 my $active_icon_downloads = 0;     # сколько реальных HTTP-запросов сейчас открыто
 my $ICON_DOWNLOAD_CONCURRENCY = 4; # лимит одновременных закачек
@@ -610,7 +640,7 @@ sub _strike_or_ban {
     my @rest = grep { $_->[0] ne $lead_md5 } @$group;
     $icon_subscribers{$station_icon_url} = \@rest if @rest;
 	
-    Slim::Utils::Timers::setTimer(undef, Time::HiRes::time() + 20, sub {
+    Slim::Utils::Timers::setTimer(undef, Time::HiRes::time() + 5, sub {
         # За эти 20с станция могла сменить URL — $lead_url/$lead_md5 в замыкании
         # протухли. Переснимаем актуальное состояние из prefs перед ретраем.
         my ($cur_name, $cur_url, $cur_md5) = _find_active_station_by_icon($station_icon_url);
@@ -798,7 +828,7 @@ sub _async_download_icon {
 		_trigger_cache_update();
 	});
     my $logo_dir = File::Spec->catdir($plugin_dir, 'HTML', 'EN', 'plugins', 'RadioStationList', 'html', 'RadioLogo');
-	my $request_timeout = $is_proxy_request ? 20 : 15;
+	my $request_timeout = $is_proxy_request ? 15 : 12;
 	eval {
         Slim::Networking::SimpleAsyncHTTP->new(
 			sub { # SUCCESS callback
@@ -1147,13 +1177,16 @@ sub _parseSearchArgs {
 sub _buildRadioBrowserUrl {
     my ($search_term, $offset, $limit) = @_;
 
-    my ($min_bitrate, $tag_part, $country_part) = (0, '', '');
+    # 1. Добавляем $codec_part в инициализацию переменных
+    my ($min_bitrate, $tag_part, $country_part, $codec_part) = (0, '', '', '');
     my @name_tokens;
 
     for my $token (split /\s+/, $search_term) {
         if    ($token =~ /^\?(\d+)$/) { $min_bitrate  = int($1); }
         elsif ($token =~ /^#(.+)$/)   { $tag_part     = lc($1);  }
         elsif ($token =~ /^@([A-Za-z]{2})$/) { $country_part = uc($1);  }
+        # 2. Добавляем обработку тега !
+        elsif ($token =~ /^!(\S+)$/) { $codec_part = lc($1); }
         else  { push @name_tokens, $token if length($token); }
     }
     my $name_part = join(' ', @name_tokens);
@@ -1164,11 +1197,16 @@ sub _buildRadioBrowserUrl {
     $url .= "&tag="         . uri_escape_utf8($tag_part)     if $tag_part;
     $url .= "&countrycode=" . uri_escape_utf8($country_part) if $country_part;
     $url .= "&bitrateMin="  . $min_bitrate                   if $min_bitrate > 0;
+    # 3. Добавляем параметр codec в API запрос
+    $url .= "&codec="       . uri_escape_utf8($codec_part)   if $codec_part;
 
-	my @filters;
+    my @filters;
     push @filters, "tag=$tag_part"         if $tag_part;
     push @filters, "country=$country_part" if $country_part;
     push @filters, "bitrate>=$min_bitrate" if $min_bitrate > 0;
+    # 4. Добавляем кодек в информационную строку для интерфейса
+    push @filters, "codec=$codec_part"     if $codec_part;
+    
     my $filter_str = @filters ? ' [' . join(', ', @filters) . ']' : '';
 
     return ($url, "'$name_part'$filter_str");
@@ -1708,7 +1746,7 @@ sub _buildStationListItem {
 
     # 2. Защита от пробелов бэкенда: триммим края, чтобы точка прижималась плотно
     $tags    =~ s/^\s+|\s+$//g;
-	$tags = substr($tags, 0, 117) . '...' if length($tags) > 120;
+	$tags = substr($tags, 0, 77) . '...' if length($tags) > 80;
     $country =~ s/^\s+|\s+$//g;
 
     # 3. В массив идут только гарантированно заполненные поля
@@ -1756,8 +1794,8 @@ sub _stationActionMenu {
     my ($client, $callback, $args, $s_name, $s_url, $s_icon, $s_bitrate, $s_codec, $s_tags, $s_ccode, $s_country, $s_homepage, $s_uuid) = @_;
 
     # Защита от гигантских спам-тегов, чтобы не перегружать кэш и UI
-    if (defined $s_tags && length($s_tags) > 120) {
-        $s_tags = substr($s_tags, 0, 117) . '...';
+    if (defined $s_tags && length($s_tags) > 80) {
+        $s_tags = substr($s_tags, 0, 77) . '...';
     }
 
     $callback->({
@@ -1835,7 +1873,13 @@ sub _addStationToPrefs {
 
     $prefs->set('stations', $stations);
     _trigger_cache_update();
-
+    
+	# Radio Browser часто не знает/врёт про битрейт — если он не смог его
+    # сообщить, пробуем измерить сами, а если кодек OGG пробуем уточнить что внутри
+	my $codec_is_ambiguous = uc($codec || '') eq 'OGG';
+	_enqueue_bitrate_probe($url)
+		if (!$bitrate || $codec_is_ambiguous) && _bitrate_probe_supported({ url => $url, codec => $codec });
+   
     $log->info("RadioBrowser: [ACTION] Added '$name'");
     $cb->({ items => [{ name => Slim::Utils::Strings::string('RR_ADDED') || 'Added!', type => 'text' }] });
 }
@@ -1847,6 +1891,11 @@ sub _onPlayEvent {
 	my $track   = $song->currentTrack() or return;
 	
 	my $url     = $track->url    or return;
+	return unless $url =~ m{^https?://}i;
+	
+	return if ($last_processed_url{$client->id} // '') eq $url;
+	$last_processed_url{$client->id} = $url;
+	
 	my $bitrate = $track->bitrate || 0;
 	my $ct      = $track->content_type || '';
 
@@ -1899,6 +1948,20 @@ sub _onPlayEvent_delayed {
 	_applyTrackMeta($current_url, $bitrate, $ct);
 }
 
+sub _detect_codec {
+    my ($ct) = @_;
+    return '-' unless $ct;
+    my $lc = lc($ct);
+    return $CODEC_MAP{$lc} if exists $CODEC_MAP{$lc};
+    return 'AAC+' if $lc =~ /aacp/;
+    return 'AAC'  if $lc =~ /\baac\b|m4a|mp4/;
+    return 'MP3'  if $lc =~ /mpeg|mp3/;
+    return 'FLAC' if $lc =~ /flac/;
+    return 'Opus' if $lc =~ /opus/;
+    return 'OGG'  if $lc =~ /\bogg\b/;
+    return '-';
+}
+
 sub _applyTrackMeta {
 	my ($url, $bitrate, $ct) = @_;
 
@@ -1908,12 +1971,7 @@ sub _applyTrackMeta {
 
 	# Определяем кодек
 	$ct ||= '';
-	my $codec = $ct =~ /aacp/i           ? 'AAC+'
-			  : $ct =~ /aac|m4a|mp4/i    ? 'AAC'
-			  : $ct =~ /mpeg|mp3/i       ? 'MP3'
-			  : $ct =~ /ogg|opus/i       ? 'OGG'
-			  : $ct =~ /flac/i           ? 'FLAC'
-			  :                            '-';
+	my $codec = _detect_codec($ct);
 	$log->debug("_applyTrackMeta called — url=[$url] bitrate=[$bitrate] ct=[$ct] codec=[$codec]");
 	my $stations = $prefs->get('stations') || [];
 	my $changed  = 0;
@@ -1952,7 +2010,7 @@ sub _stationInfoCliQuery {
     my $homepage= $request->getParam('homepage');
     my $uuid    = $request->getParam('uuid');
 
-    my $nameLabel    = Slim::Utils::Strings::string('RR_INFO_NAME');
+    my $nameLabel    = Slim::Utils::Strings::string('RR_NAME');
     my $genreLabel   = Slim::Utils::Strings::string('RR_INFO_GENRE');
     my $countryLabel = Slim::Utils::Strings::string('RR_INFO_COUNTRY');
     my $codecLabel   = Slim::Utils::Strings::string('RR_CODEC');
@@ -2005,6 +2063,264 @@ sub _stationInfoCliQuery {
     Slim::Control::XMLBrowser::cliQuery('radiostationlistinfo', $feed, $request);
 }
 
+# Блок определения битрейта вручную
+sub _parse_adts_bitrate {
+    my ($data) = @_;
+    my $len = length($data);
+    my (@frame_sizes, $sample_rate);
+    my $pos = 0;
+
+    while ($pos + 7 <= $len) {
+        unless (ord(substr($data,$pos,1)) == 0xFF && (ord(substr($data,$pos+1,1)) & 0xF0) == 0xF0) {
+            $pos++; next;
+        }
+        my @b = unpack('C7', substr($data, $pos, 7));
+        my $freq_idx  = ($b[2] >> 2) & 0x0F;
+        my $frame_len = (($b[3] & 0x03) << 11) | ($b[4] << 3) | (($b[5] >> 5) & 0x07);
+
+        if ($frame_len < 7 || $pos + $frame_len > $len || !defined $ADTS_SAMPLE_RATES[$freq_idx]) {
+            $pos++; next;
+        }
+        $sample_rate //= $ADTS_SAMPLE_RATES[$freq_idx];
+        push @frame_sizes, $frame_len;
+        $pos += $frame_len;
+    }
+
+    return undef unless @frame_sizes >= 5 && $sample_rate;
+    shift @frame_sizes;
+    pop @frame_sizes if @frame_sizes > 5;
+    my $avg_len = 0; $avg_len += $_ for @frame_sizes;
+    $avg_len /= scalar(@frame_sizes);
+    return int(($avg_len * 8 * $sample_rate) / 1024 / 1000 + 0.5);
+}
+
+sub _enqueue_bitrate_probe {
+    my ($url) = @_;
+    if ($bitrate_probe_queued{$url} || $bitrate_probe_inflight{$url}) {
+        $log->debug("[BITRATE-PROBE] '$url' already queued/inflight — skipping enqueue");
+        return;
+    }
+    $log->debug("[BITRATE-PROBE] Enqueuing '$url' for measurement");
+    $bitrate_probe_queued{$url} = 1;
+    push @bitrate_probe_queue, $url;
+    _process_bitrate_probe_queue();
+}
+
+sub bitrate_probes_pending {
+    return scalar(@bitrate_probe_queue) + scalar(keys %bitrate_probe_inflight);
+}
+
+sub _process_bitrate_probe_queue {
+    while (scalar(keys %bitrate_probe_inflight) < $BITRATE_PROBE_CONCURRENCY && @bitrate_probe_queue) {
+        my $url = shift @bitrate_probe_queue;
+        delete $bitrate_probe_queued{$url};
+        _probe_stream_bitrate($url);
+    }
+}
+
+# Форматы, для которых нет frame-парсера битрейта (см. _finish_bitrate_probe) —
+# не тратим сетевой слот и не занимаем очередь тем, что заведомо не измерить.
+sub _bitrate_probe_supported {
+    my ($station) = @_;
+    my $codec = uc($station->{codec} || '');
+    return 0 if $codec =~ /^(FLAC|OPUS|VORBIS|WMA|ALAC)$/;
+
+    my $url = $station->{url} || '';
+    # Это не сам поток, а плейлист-указатель — внутри текст, не аудио-кадры
+    return 0 if $url =~ /\.(m3u8?|pls)(?:[\?\#]|$)/i;
+
+    return 1;
+}
+
+sub measure_all_unknown_bitrates {
+    my $stations = $prefs->get('stations') || [];
+    my $queued = 0;
+    for my $st (@$stations) {
+        next unless $st->{url};
+        next if $st->{bitrate};
+        next unless _bitrate_probe_supported($st);
+        _enqueue_bitrate_probe($st->{url});
+        $queued++;
+    }
+    $log->info("[BITRATE-PROBE] Queued $queued station(s) for bitrate measurement");
+    return $queued;
+}
+
+sub _probe_stream_bitrate {
+    my ($url) = @_;
+    $bitrate_probe_inflight{$url} = 1;
+    my $my_start = time();
+    $bitrate_probe_started{$url} = $my_start;
+
+    $log->info("[BITRATE-PROBE] Starting probe for $url");
+
+    my $request = HTTP::Request->new(GET => $url);
+    $request->header('User-Agent'   => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+    $request->header('Icy-MetaData' => '0');
+
+    Slim::Networking::Async::HTTP->new->send_request({
+        request     => $request,
+        Timeout     => 8,
+        readLimit   => 65536,   # штатный механизм LMS "прочитать N байт и остановиться"
+        onBody      => \&_on_bitrate_probe_body,
+        onError     => \&_on_bitrate_probe_error,
+        passthrough => [ $url, $my_start ],
+    });
+}
+
+sub _finish_bitrate_probe {
+    my ($http, $url) = @_;
+    my $content = $http->content // '';
+    my $ct = eval { $http->headers ? $http->headers->header('Content-Type') : '' } || '';
+	
+	_apply_icy_metadata($url, $http->headers) if $http->headers;
+	
+	if ($ct =~ /ogg/i) {
+		if (my $resolved = _detect_ogg_subcodec($content)) {
+			$log->info("[BITRATE-PROBE] '$url': container is Ogg, sniffed real codec as '$resolved'");
+			$ct = $resolved;
+		}
+	}
+    my $bitrate;
+    if ($ct =~ /mpeg|mp3/i) {
+        $bitrate = _parse_mp3_bitrate($content);
+    } elsif ($ct =~ /aac|mp4|m4a/i) {
+        $bitrate = _parse_adts_bitrate($content);
+    } else {
+        $log->info("[BITRATE-PROBE] '$url': content-type '$ct' not supported for bitrate measurement — recording codec only");
+        _applyTrackMeta($url, 0, $ct);
+        return;
+    }
+
+    unless ($bitrate) {
+        $log->warn("[BITRATE-PROBE] Could not determine bitrate for $url (ct=$ct, " . length($content) . " bytes)");
+        _applyTrackMeta($url, 0, $ct);
+        return;
+    }
+
+    $log->info("[BITRATE-PROBE] Measured $url -> ${bitrate}k (ct=$ct)");
+    _applyTrackMeta($url, $bitrate * 1000, $ct);
+}
+sub _decode_icy_string {
+    my ($str) = @_;
+    return $str unless defined $str && length $str;
+    my $decoded = eval { Encode::decode('UTF-8', $str, Encode::FB_CROAK) };
+    return $@ ? $str : $decoded;
+}
+#Пробуем из заголовка вытянуть инфо о станции
+sub _apply_icy_metadata {
+    my ($url, $headers) = @_;
+
+	my $icy_genre = _decode_icy_string($headers->header('icy-genre'));
+	my $icy_url   = _decode_icy_string($headers->header('icy-url'));
+	my $icy_name  = _decode_icy_string($headers->header('icy-name'));
+
+    return unless $icy_genre || $icy_url || $icy_name;
+	
+	if ($icy_genre && length($icy_genre) > 80) {
+        $icy_genre = substr($icy_genre, 0, 77) . '...';
+    }
+
+    $log->info("[ICY-META] '$url': found icy-genre='" . ($icy_genre // '') . "', icy-url='" . ($icy_url // '') . "', icy-name='" . ($icy_name // '') . "'");
+
+    my $stations = $prefs->get('stations') || [];
+    my $changed = 0;
+
+    for my $st (@$stations) {
+        next unless $st->{url} eq $url;
+
+        if ($icy_genre && !$st->{tags}) {
+            $log->info("[ICY-META] '$url': filling empty tags with icy-genre '$icy_genre'");
+            $st->{tags} = $icy_genre;
+            $changed = 1;
+			$icy_tags_applied_at{$url} = time();
+        }
+
+        if ($icy_url && !$st->{homepage}) {
+            my $decoded = $icy_url;
+            $decoded =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/ge; # icy-url иногда percent-encoded, как мы уже видели на radiorecord
+            if ($decoded =~ m{^https?://}i) {
+                $log->info("[ICY-META] '$url': filling empty homepage with icy-url '$decoded'");
+                $st->{homepage} = $decoded;
+                $changed = 1;
+            }
+        }
+
+		if ($icy_name && (($st->{name} // '') eq '' || ($st->{name} // '') eq $url)) {
+            $log->info("[ICY-META] '$url': replacing placeholder name with icy-name '$icy_name'");
+            $st->{name} = $icy_name;
+            $changed = 1;
+        }
+        last;
+    }
+
+    $prefs->set('stations', $stations) if $changed;
+    # _trigger_cache_update() отдельно не нужен — _applyTrackMeta ниже по коду
+    # в этой же _finish_bitrate_probe вызывается всегда, в любой её ветке,
+    # и сам обновит кэш; отдельный вызов здесь был бы лишним дублем.
+}
+
+sub _on_bitrate_probe_body {
+    my ($http, $url, $my_start) = @_;
+    return if ($bitrate_probe_started{$url} // 0) != $my_start;
+    delete $bitrate_probe_inflight{$url};
+    delete $bitrate_probe_started{$url};
+
+    my $response = $http->response;
+    my $len = $response ? length($response->content // '') : 0;
+    $log->info("[BITRATE-PROBE] onBody for $url, got $len bytes");
+    _finish_bitrate_probe($response, $url) if $len;
+    _process_bitrate_probe_queue();
+}
+
+sub _on_bitrate_probe_error {
+    my ($http, $error, $url, $my_start) = @_;
+    return if ($bitrate_probe_started{$url} // 0) != $my_start;
+    delete $bitrate_probe_inflight{$url};
+    delete $bitrate_probe_started{$url};
+    $log->warn("[BITRATE-PROBE] Error probing $url: $error");
+    _process_bitrate_probe_queue();
+}
+
+sub _detect_ogg_subcodec {
+    my ($data) = @_;
+    return 'audio/x-flac' if index($data, 'fLaC') >= 0;     # Ogg-FLAC несёт "родной" FLAC STREAMINFO с этой сигнатурой
+    return 'audio/opus'   if index($data, 'OpusHead') >= 0; # Ogg Opus ID Header
+    return undef;                                            # не нашли — оставляем как есть (обычный Vorbis → OGG)
+}
+
+sub _parse_mp3_bitrate {
+    my ($data) = @_;
+    my $len = length($data);
+    my $pos = 0;
+    while ($pos + 4 <= $len) {
+        unless (ord(substr($data,$pos,1)) == 0xFF && (ord(substr($data,$pos+1,1)) & 0xE0) == 0xE0) {
+            $pos++; next;
+        }
+        my @b = unpack('C4', substr($data,$pos,4));
+        my $version = ($b[1] >> 3) & 0x03;
+        my $layer   = ($b[1] >> 1) & 0x03;
+        unless ($version == 3 && $layer == 1) { $pos++; next; } # только MPEG1 Layer III
+        my $bitrate_idx    = ($b[2] >> 4) & 0x0F;
+        my $samplerate_idx = ($b[2] >> 2) & 0x03;
+        my $padding        = ($b[2] >> 1) & 0x01;
+        my $bitrate    = $MPEG1_L3_BITRATES[$bitrate_idx];
+        my $samplerate = $MPEG1_SAMPLERATES[$samplerate_idx];
+        unless ($bitrate && $samplerate) { $pos++; next; }
+
+        my $frame_len = int(144 * $bitrate * 1000 / $samplerate) + $padding;
+        if ($pos + $frame_len + 2 <= $len) {
+            my $next_ok = ord(substr($data,$pos+$frame_len,1)) == 0xFF
+                       && (ord(substr($data,$pos+$frame_len+1,1)) & 0xE0) == 0xE0;
+            return $bitrate if $next_ok;
+        } else {
+            return $bitrate;
+        }
+        $pos++;
+    }
+    return undef;
+}
+
 sub _serveWebpPreview {
 	my ($client, $response) = @_;
 	my $path = $response->request->uri->path;
@@ -2037,6 +2353,166 @@ sub _serveWebpPreview {
 	my $err = 'Image not found';
 	$response->content_length(length($err));
 	Slim::Web::HTTP::addHTTPResponse($client, $response, \$err);
+}
+
+sub _normalize_import_entry {
+    my ($st) = @_;
+    return $st unless ref($st) eq 'HASH';
+
+    # Признак "чужого" формата Radio Browser — полей stationuuid/url_resolved
+    # в нашей собственной схеме экспорта нет и никогда не было.
+    return $st unless exists $st->{stationuuid} || exists $st->{url_resolved};
+
+    return {
+        name        => $st->{name},
+        url         => $st->{url_resolved} || $st->{url},
+        icon        => $st->{favicon}     || '',
+        bitrate     => $st->{bitrate}     || 0,
+        codec       => $st->{codec}       || '',
+        tags        => $st->{tags}        || '',
+        countrycode => $st->{countrycode} || '',
+        country     => $st->{country}     || '',
+        homepage    => $st->{homepage}    || '',
+        uuid        => $st->{stationuuid} || '',
+    };
+}
+
+sub _merge_imported_stations {
+    my ($imported) = @_;
+    my $result = { added => 0, duplicate => 0, invalid => 0, skipped_limit => 0 };
+
+    my $stations = $prefs->get('stations') || [];
+    my %existing_urls = map { lc($_->{url} // '') => 1 } @$stations;
+
+    my $total = scalar @$imported;
+    if ($total > $IMPORT_MAX_STATIONS) {
+        $result->{skipped_limit} = $total - $IMPORT_MAX_STATIONS;
+        $log->warn("[IMPORT] File contains $total entries, only processing first $IMPORT_MAX_STATIONS (limit)");
+    }
+
+    my $processed = 0;
+    for my $raw (@$imported) {
+        last if $processed >= $IMPORT_MAX_STATIONS;
+        $processed++;
+
+        my $st = _normalize_import_entry($raw);
+        next unless ref($st) eq 'HASH';
+
+        my $name = $st->{name};
+        my $url  = $st->{url};
+
+        unless ($name && $url && $url =~ m{^https?://[\x21-\x7E]+$}i) {
+            $result->{invalid}++;
+            next;
+        }
+        if ($existing_urls{lc($url)}) {
+            $result->{duplicate}++;
+            next;
+        }
+
+        my $bitrate = $st->{bitrate} ? int($st->{bitrate}) : 0;
+        my $codec   = $st->{codec} || '';
+
+        push @$stations, {
+            name        => $name,
+            url         => $url,
+            icon        => $st->{icon}        || '',
+            bitrate     => $bitrate,
+            codec       => $codec,
+            tags        => $st->{tags}         || '',
+            countrycode => $st->{countrycode}  || '',
+            country     => $st->{country}      || '',
+            homepage    => $st->{homepage}     || '',
+            uuid        => $st->{uuid}         || '',
+        };
+        $existing_urls{lc($url)} = 1;
+        $result->{added}++;
+
+        # Тот же автотриггер, что уже есть для ручного добавления и Radio Browser —
+        # ни JSON-бэкап без сохранённого битрейта, ни M3U (там его вообще
+        # неоткуда взять) не должны требовать отдельного клика по кнопке.
+		my $codec_is_ambiguous = uc($codec || '') eq 'OGG';
+		_enqueue_bitrate_probe($url)
+			if (!$bitrate || $codec_is_ambiguous) && _bitrate_probe_supported({ url => $url, codec => $codec });
+    }
+
+    $prefs->set('stations', $stations);
+    $prefs->save();
+    return $result;
+}
+
+sub import_stations_from_json {
+    my ($json_text) = @_;
+    my $imported = eval { decode_json(Encode::encode_utf8($json_text)) };
+    if ($@ || ref($imported) ne 'ARRAY') {
+        $log->warn("[IMPORT-JSON] Failed to parse: " . ($@ || 'not an array'));
+        return { added => 0, duplicate => 0, invalid => 0, parse_error => 1 };
+    }
+    my $result = _merge_imported_stations($imported);
+    $log->info("[IMPORT-JSON] Added $result->{added}, skipped $result->{duplicate} duplicate(s), rejected $result->{invalid} invalid");
+    return $result;
+}
+
+sub _parse_m3u {
+    my ($text) = @_;
+    my @entries;
+    my $skipped_local = 0;
+    my $parse_invalid = 0;
+    my ($pending_name, $pending_icon, $pending_tags);
+
+    for my $line (split /\r?\n/, $text) {
+        $line =~ s/^\x{FEFF}//;
+        $line =~ s/^\s+|\s+$//g;
+        next unless length $line;
+
+        if ($line =~ /^#EXTINF:/i) {
+            my $rest = $line;
+            $rest =~ s/^#EXTINF:\s*-?\d+\s*//i;
+
+            $pending_icon = ($rest =~ /tvg-logo="([^"]*)"/i)    ? $1 : '';
+            $pending_tags = ($rest =~ /group-title="([^"]*)"/i) ? $1 : '';
+            $pending_name = ($rest =~ /,(.*)$/) ? $1 : '';
+            $pending_name =~ s/^\s+|\s+$//g if $pending_name;
+            next;
+        }
+
+        next if $line =~ /^#/;
+
+        if ($line =~ m{^https?://[\x21-\x7E]+$}i) {
+            push @entries, {
+                name => (defined $pending_name && length $pending_name) ? $pending_name : $line,
+                url  => $line,
+                icon => $pending_icon || '',
+                tags => $pending_tags || '',
+            };
+        } elsif ($line =~ m{^file://}i || $line =~ m{^[A-Za-z]:[\\/]} || $line =~ m{^/} || $line !~ m{://}) {
+            # Локальный путь на диске донора плейлиста (file://, C:\..., /home/..., 
+            # или просто относительный "song.mp3") — не мусор, осознанный тип записи,
+            # но у нас нет доступа к чужому диску. Считаем отдельно от invalid.
+            $skipped_local++;
+        } else {
+            # Прочие непонятные схемы (rtmp://, mms:// и т.п.) — действительно не поддерживаем.
+            $parse_invalid++;
+        }
+
+        ($pending_name, $pending_icon, $pending_tags) = (undef, undef, undef);
+    }
+
+    return (\@entries, $skipped_local, $parse_invalid);
+}
+
+sub import_stations_from_m3u {
+    my ($m3u_text) = @_;
+    my ($imported, $skipped_local, $parse_invalid) = eval { _parse_m3u($m3u_text) };
+    if ($@ || ref($imported) ne 'ARRAY') {
+        $log->warn("[IMPORT-M3U] Failed to parse: " . ($@ || 'unknown error'));
+        return { added => 0, duplicate => 0, invalid => 0, skipped_local => 0, parse_error => 1 };
+    }
+    my $result = _merge_imported_stations($imported);
+    $result->{invalid}       += $parse_invalid;
+    $result->{skipped_local}  = $skipped_local;
+    $log->info("[IMPORT-M3U] Added $result->{added}, skipped $result->{duplicate} duplicate(s), $skipped_local local file(s), rejected $result->{invalid} invalid");
+    return $result;
 }
 
 1;
